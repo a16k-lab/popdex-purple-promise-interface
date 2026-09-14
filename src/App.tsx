@@ -11,6 +11,8 @@ import { EpochStatsOverview } from './components/EpochStatsOverview';
 import { ExternalLink, ArrowLeft, Check, Copy } from 'lucide-react';
 import { Bokeh } from './components/Bokeh';
 
+const JOIN_URL = 'https://app.popdex.xyz/en/referral?referralCode=TRADE';
+
 export const App: React.FC = () => {
   const [epochConfig] = useState<EpochConfig>(() => getEpochConfig());
   // Do NOT pre-fill on page load or refresh: start clean and empty
@@ -69,6 +71,17 @@ export const App: React.FC = () => {
               </h1>
               <p className="text-[15px] sm:text-base text-[#a0a3a7] leading-relaxed">
                 Inspect any EVM wallet to see its weekly volume and whether it qualifies for rewards.
+              </p>
+              <p className="text-[14px] text-[#6c6f75]">
+                Not joined yet?{' '}
+                <a
+                  href={JOIN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#bdb9ff] font-semibold border-b border-[#bdb9ff]/40 hover:border-[#bdb9ff] transition-colors inline-flex items-center gap-1"
+                >
+                  Join PopDex with code <code className="code">TRADE</code> <ExternalLink size={11} />
+                </a>
               </p>
             </section>
 
@@ -155,7 +168,7 @@ export const App: React.FC = () => {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="caption">PopDex Purple Promise · 3P</span>
           <div className="flex items-center gap-5 caption">
-            <a href="https://app.popdex.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1">
+            <a href={JOIN_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1">
               PopDex App <ExternalLink size={10} />
             </a>
             <a href="https://scan.pinsider.org" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1">

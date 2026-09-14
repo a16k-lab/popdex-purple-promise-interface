@@ -48,18 +48,30 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   };
 
   // Past points cover the entire left half (0% to 50% X) - Dynamic normalized flow
-  const pastPointsCoords = data.pastPoints.map((p) => {
-    const x = padLeft + p.percentAlongEpoch * halfWidth;
-    const y = getY(p.intervalVolume);
-    return { x, y, point: p };
-  });
+  const rawPastCoords = data.pastPoints.map((p) => ({
+    x: padLeft + p.percentAlongEpoch * halfWidth,
+    y: getY(p.intervalVolume),
+    point: p,
+  }));
 
   // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
-  const livePointsCoords = data.livePoints.map((p) => {
-    const x = midX + p.percentAlongEpoch * halfWidth;
-    const y = getY(p.intervalVolume);
-    return { x, y, point: p };
-  });
+  const rawLiveCoords = data.livePoints.map((p) => ({
+    x: midX + p.percentAlongEpoch * halfWidth,
+    y: getY(p.intervalVolume),
+    point: p,
+  }));
+
+  // Visual smoothing only (hover values stay raw): a light 1-2-1 pass over the
+  // pixel heights takes the edge off 2-hour buckets without hiding real peaks.
+  const softenSeries = <T extends { x: number; y: number }>(coords: T[]): T[] =>
+    coords.map((c, i, a) => {
+      const prev = a[i - 1] ?? c;
+      const next = a[i + 1] ?? c;
+      return { ...c, y: (prev.y + 2 * c.y + next.y) / 4 };
+    });
+
+  const pastPointsCoords = softenSeries(rawPastCoords);
+  const livePointsCoords = softenSeries(rawLiveCoords);
 
   // Connect junction seamlessly at 50% without any cliff drop
   if (pastPointsCoords.length > 0 && livePointsCoords.length > 0) {
@@ -72,19 +84,53 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const nowX = liveHead ? liveHead.x : midX;
   const nowY = liveHead ? liveHead.y : groundY;
 
+  // Monotone cubic interpolation (Fritsch–Carlson): a smooth curve through every
+  // point that never overshoots between samples, so it can't dip below zero or
+  // invent a bump that isn't in the data.
   const buildSmoothPath = (coords: { x: number; y: number }[]) => {
-    if (coords.length === 0) return '';
-    if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
-    let d = `M ${coords[0].x} ${coords[0].y}`;
-    for (let i = 1; i < coords.length; i++) {
-      const prev = coords[i - 1];
-      const curr = coords[i];
-      if (Math.abs(prev.y - curr.y) < 0.2) {
-        d += ` L ${curr.x} ${curr.y}`;
-      } else {
-        const cx = (prev.x + curr.x) / 2;
-        d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+    const n = coords.length;
+    if (n === 0) return '';
+    if (n === 1) return `M ${coords[0].x} ${coords[0].y}`;
+    if (n === 2) return `M ${coords[0].x} ${coords[0].y} L ${coords[1].x} ${coords[1].y}`;
+
+    const dx: number[] = [];
+    const slope: number[] = [];
+    for (let i = 0; i < n - 1; i++) {
+      const h = coords[i + 1].x - coords[i].x || 1e-6;
+      dx.push(h);
+      slope.push((coords[i + 1].y - coords[i].y) / h);
+    }
+    const tangent: number[] = [slope[0]];
+    for (let i = 1; i < n - 1; i++) {
+      tangent.push(slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2);
+    }
+    tangent.push(slope[n - 2]);
+    for (let i = 0; i < n - 1; i++) {
+      if (slope[i] === 0) {
+        tangent[i] = 0;
+        tangent[i + 1] = 0;
+        continue;
       }
+      const a = tangent[i] / slope[i];
+      const b = tangent[i + 1] / slope[i];
+      const sum = a * a + b * b;
+      if (sum > 9) {
+        const t = 3 / Math.sqrt(sum);
+        tangent[i] = t * a * slope[i];
+        tangent[i + 1] = t * b * slope[i];
+      }
+    }
+
+    let d = `M ${coords[0].x.toFixed(2)} ${coords[0].y.toFixed(2)}`;
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = coords[i];
+      const p1 = coords[i + 1];
+      const h = dx[i] / 3;
+      const c1x = p0.x + h;
+      const c1y = p0.y + tangent[i] * h;
+      const c2x = p1.x - h;
+      const c2y = p1.y - tangent[i + 1] * h;
+      d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
     }
     return d;
   };
@@ -289,10 +335,11 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           <path
             d={pastLineD}
             fill="none"
-            stroke="#6c6f75"
-            strokeWidth="2.2"
+            stroke="#7d8087"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity="0.9"
           />
 
           {/* Future Unelapsed Zone (Between nowX and rightEdge) */}
@@ -352,7 +399,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             d={liveLineD}
             fill="none"
             stroke="#8077ff"
-            strokeWidth="3"
+            strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
             filter="url(#purpleGlow)"
