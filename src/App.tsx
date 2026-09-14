@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { getEpochConfig } from './config/epochConfig';
+import { getEpochConfig, TARGET_VOLUME_USD } from './config/epochConfig';
 import { getWalletVolumeData } from './services/volumeService';
 import type { EpochConfig, WalletVolumeData } from './types';
 import { AmbientBackground } from './components/AmbientBackground';
@@ -11,6 +11,10 @@ import { EpochStatsOverview } from './components/EpochStatsOverview';
 import { ExternalLink, ArrowLeft, Check, Copy } from 'lucide-react';
 import { Bokeh } from './components/Bokeh';
 import { JOIN_URL, REFERRAL_CODE } from './config/links';
+
+const formatTarget = (v: number) => `$${v.toLocaleString('en-US')}`;
+const formatTargetShort = (v: number) =>
+  v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(v % 1_000_000 ? 1 : 0)}M` : v >= 1_000 ? `$${Math.round(v / 1_000)}K` : `$${v}`;
 
 export const App: React.FC = () => {
   const [epochConfig] = useState<EpochConfig>(() => getEpochConfig());
@@ -95,16 +99,18 @@ export const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Rule card */}
+            {/* Rule card — green: this is the line you need to cross */}
             <section className="pt-2">
-              <div className="w-full max-w-2xl mx-auto glass-panel rounded-2xl p-6 sm:p-7">
+              <div className="w-full max-w-2xl mx-auto glass-panel rule-card rounded-2xl p-6 sm:p-7">
                 <Bokeh />
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="pill">Rule</span>
-                  <h3 className="text-[19px] font-bold tracking-[-0.015em] text-white">$100,000 volume threshold</h3>
+                  <span className="pill !text-[#17a781] !bg-[#17a781]/12 !border-[#17a781]/35">Rule</span>
+                  <h3 className="text-[19px] font-bold tracking-[-0.015em] text-white">
+                    <span className="text-[#17a781]">{formatTarget(TARGET_VOLUME_USD)}</span> volume threshold
+                  </h3>
                 </div>
                 <p className="text-[15px] text-[#a0a3a7] leading-relaxed">
-                  Generate <code className="code">$100K+</code> volume in the active 7-day epoch to earn{' '}
+                  Generate <code className="code code-green">{formatTargetShort(TARGET_VOLUME_USD)}+</code> volume in the active 7-day epoch to earn{' '}
                   <strong className="text-[#17a781] font-semibold">Purple Promise Verified</strong> status and protocol rewards.
                 </p>
               </div>

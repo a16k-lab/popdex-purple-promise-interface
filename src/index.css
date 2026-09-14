@@ -71,6 +71,25 @@ html, body {
   .bokeh span:nth-child(4) { --c1: rgba(240,50,119,0.14); --c2: rgba(240,50,119,0.03); --blur: 26px; --t: 13s; --delay: -2s; width: 140px; height: 140px; right: -40px; top: 40%; }
   .bokeh span:nth-child(5) { --c1: rgba(189,185,255,0.2); --c2: rgba(128,119,255,0.05); --blur: 14px; --t: 9s; --delay: -5s; width: 70px; height: 70px; left: -20px; bottom: 6%; }
 
+  /* Green-tinted glass for the threshold rule. */
+  .rule-card {
+    border-color: rgba(23, 167, 129, 0.42) !important;
+    background: linear-gradient(180deg, rgba(23, 167, 129, 0.10), rgba(20, 21, 26, 0.55) 60%) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(23, 167, 129, 0.25),
+      0 0 0 1px rgba(23, 167, 129, 0.06),
+      0 30px 90px -30px rgba(23, 167, 129, 0.45),
+      0 24px 48px -24px rgba(0, 0, 0, 0.7) !important;
+  }
+  .rule-card .bokeh span:nth-child(1) { --c1: rgba(23,167,129,0.34); --c2: rgba(23,167,129,0.08); }
+  .rule-card .bokeh span:nth-child(3) { --c1: rgba(95,209,179,0.26); --c2: rgba(23,167,129,0.06); }
+  .rule-card .bokeh span:nth-child(4) { --c1: rgba(23,167,129,0.16); --c2: rgba(23,167,129,0.03); }
+  code.code.code-green {
+    background: rgba(23, 167, 129, 0.14);
+    color: #5fd1b3;
+    border-color: rgba(23, 167, 129, 0.4);
+  }
+
   /* Step-number pill from Creators. */
   .pill {
     display: inline-flex; align-items: center; gap: 6px;

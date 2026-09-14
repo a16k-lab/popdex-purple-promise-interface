@@ -30,17 +30,16 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const halfWidth = chartWidth / 2; // 460
   const groundY = padTop + chartHeight;
 
-  // Linear scale on CUMULATIVE volume — the number eligibility is judged on — so the
-  // axis, the tooltip and the headline totals all agree. Headroom keeps the $100K
-  // target line on-chart even for small wallets.
-  const targetUsd = data.targetVolumeUsd || 100_000;
-  const maxCumulative = Math.max(
-    ...data.allPoints.map((p) => p.cumulativeVolume || 0),
-    targetUsd * 1.15,
+  // Dynamic Square-Root Normalizer (Sub-linear Power Transform)
+  // Compresses outlier whale peaks so standard trading activity remains clear, dynamic and off the floor
+  const transformVol = (v: number) => Math.sqrt(Math.max(0, v));
+  const invertVol = (t: number) => Math.pow(t, 2);
+
+  const maxIntervalVolume = Math.max(
+    ...data.allPoints.map((p) => p.intervalVolume || 0),
+    100
   );
-  const maxTransformed = maxCumulative * 1.06;
-  const transformVol = (v: number) => Math.max(0, v);
-  const invertVol = (t: number) => t;
+  const maxTransformed = transformVol(maxIntervalVolume) * 1.08;
 
   const getY = (val: number) => {
     const t = transformVol(val);
@@ -52,11 +51,11 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const yTicks = (() => {
     const top = invertVol(maxTransformed);
     if (!(top > 0)) return [] as number[];
-    const rough = top / 5;
+    const rough = top / 4;
     const mag = Math.pow(10, Math.floor(Math.log10(rough)));
     const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((c) => c >= rough) ?? mag * 10;
     const ticks: number[] = [];
-    for (let v = step; v <= top && ticks.length < 6; v += step) ticks.push(v);
+    for (let v = step; v <= top && ticks.length < 5; v += step) ticks.push(v);
     return ticks;
   })();
 
@@ -75,19 +74,38 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
     return h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`;
   })();
 
-  // Past epoch fills the left half (0–50% X); live epoch runs from the middle to NOW.
-  // Each epoch's cumulative curve starts from zero — that step at the junction is real.
-  const pastPointsCoords = data.pastPoints.map((p) => ({
+  // Past points cover the entire left half (0% to 50% X) - Dynamic normalized flow
+  const rawPastCoords = data.pastPoints.map((p) => ({
     x: padLeft + p.percentAlongEpoch * halfWidth,
-    y: getY(p.cumulativeVolume),
+    y: getY(p.intervalVolume),
     point: p,
   }));
 
-  const livePointsCoords = data.livePoints.map((p) => ({
+  // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
+  const rawLiveCoords = data.livePoints.map((p) => ({
     x: midX + p.percentAlongEpoch * halfWidth,
-    y: getY(p.cumulativeVolume),
+    y: getY(p.intervalVolume),
     point: p,
   }));
+
+  // Visual smoothing only (hover values stay raw): a light 1-2-1 pass over the
+  // pixel heights takes the edge off 2-hour buckets without hiding real peaks.
+  const softenSeries = <T extends { x: number; y: number }>(coords: T[]): T[] =>
+    coords.map((c, i, a) => {
+      const prev = a[i - 1] ?? c;
+      const next = a[i + 1] ?? c;
+      return { ...c, y: (prev.y + 2 * c.y + next.y) / 4 };
+    });
+
+  const pastPointsCoords = softenSeries(rawPastCoords);
+  const livePointsCoords = softenSeries(rawLiveCoords);
+
+  // Connect junction seamlessly at 50% without any cliff drop
+  if (pastPointsCoords.length > 0 && livePointsCoords.length > 0) {
+    const junctionCoord = pastPointsCoords[pastPointsCoords.length - 1];
+    livePointsCoords[0].x = junctionCoord.x;
+    livePointsCoords[0].y = junctionCoord.y;
+  }
 
   const liveHead = livePointsCoords.length > 0 ? livePointsCoords[livePointsCoords.length - 1] : null;
   const nowX = liveHead ? liveHead.x : midX;
@@ -158,7 +176,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       ? `${liveLineD} L ${nowX} ${groundY} L ${midX} ${groundY} Z`
       : '';
 
-  const junctionPoint = livePointsCoords[0] || { x: midX, y: groundY };
+  const junctionPoint = pastPointsCoords[pastPointsCoords.length - 1] || { x: midX, y: groundY };
 
   // Responsive badge coordinates to prevent overlapping collisions
   const isNearJunction = nowX - midX < 115;
@@ -240,7 +258,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             <span>50% Epoch Junction</span>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#8077ff]/10 text-[#bdb9ff] border border-[#8077ff]/20">
-            Cumulative volume
+            √ scale
           </span>
         </div>
 
@@ -330,15 +348,15 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             );
           })}
           <text
-            x={padLeft}
+            x={padLeft - 8}
             y={padTop - 6}
-            textAnchor="start"
+            textAnchor="end"
             fontSize="8"
             fontFamily="monospace"
             fill="#6c6f75"
             letterSpacing="0.08em"
           >
-            CUMULATIVE USD
+            USD / {bucketLabel}
           </text>
 
           <line
@@ -348,43 +366,6 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             y2={groundY}
             stroke="rgba(255, 255, 255, 0.1)"
           />
-
-          {/* Purple Promise target */}
-          <g>
-            <line
-              x1={padLeft}
-              y1={getY(targetUsd)}
-              x2={viewBoxWidth - padRight}
-              y2={getY(targetUsd)}
-              stroke="#17a781"
-              strokeWidth="1.2"
-              strokeDasharray="6 5"
-              opacity="0.7"
-            />
-            <rect
-              x={viewBoxWidth - padRight - 92}
-              y={getY(targetUsd) - 9}
-              width="92"
-              height="16"
-              rx="8"
-              fill="#0b0b0d"
-              stroke="#17a781"
-              strokeWidth="1"
-              opacity="0.95"
-            />
-            <text
-              x={viewBoxWidth - padRight - 46}
-              y={getY(targetUsd) + 2.5}
-              textAnchor="middle"
-              fontSize="8.5"
-              fontWeight="700"
-              fill="#17a781"
-              fontFamily="system-ui"
-              letterSpacing="0.06em"
-            >
-              {formatUsdShort(targetUsd)} TARGET
-            </text>
-          </g>
 
           {/* Past Curve (Left 50%) */}
           <path d={pastAreaD} fill="url(#pastAreaGrad)" />
@@ -656,14 +637,14 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               </div>
 
               <div className="flex justify-between items-center text-white/80">
-                <span>Interval:</span>
+                <span>Volume ({bucketLabel} bucket)</span>
                 <span className="font-mono font-bold text-white">
                   ${hoveredPoint.intervalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-white/80">
-                <span>Cumulative:</span>
+                <span>Running total</span>
                 <span
                   className={`font-mono font-bold ${
                     hoveredPoint.epochType === 'live' ? 'text-[#bdb9ff]' : 'text-slate-300'
@@ -737,7 +718,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5">
           <Activity size={12} className="text-[#8077ff]" />
-          <span>Each epoch's curve is its running total · hover for the {bucketLabel} interval.</span>
+          <span>Curve shows volume per {bucketLabel} bucket (√ scale keeps whale spikes readable) · hover for running totals.</span>
         </div>
         <div className="font-mono text-white/50">
           Threshold: <strong className="text-white">$100,000 USD</strong>
