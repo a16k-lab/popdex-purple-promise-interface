@@ -3,6 +3,7 @@ import type { WalletVolumeData } from '../types';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { Bokeh } from './Bokeh';
+import { JOIN_URL } from '../config/links';
 
 interface EligibilityCardProps {
   data: WalletVolumeData;
@@ -121,7 +122,7 @@ export const EligibilityCard: React.FC<EligibilityCardProps> = ({ data }) => {
                 ${remainingUsdNeeded.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
-            <a href="https://app.popdex.xyz" target="_blank" rel="noopener noreferrer" className="btn btn-sm w-full justify-center">
+            <a href={JOIN_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm w-full justify-center">
               Trade on PopDex
               <ArrowUpRight size={13} strokeWidth={2.6} />
             </a>

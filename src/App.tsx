@@ -10,8 +10,7 @@ import { EligibilityCard } from './components/EligibilityCard';
 import { EpochStatsOverview } from './components/EpochStatsOverview';
 import { ExternalLink, ArrowLeft, Check, Copy } from 'lucide-react';
 import { Bokeh } from './components/Bokeh';
-
-const JOIN_URL = 'https://app.popdex.xyz/en/referral?referralCode=TRADE';
+import { JOIN_URL, REFERRAL_CODE } from './config/links';
 
 export const App: React.FC = () => {
   const [epochConfig] = useState<EpochConfig>(() => getEpochConfig());
@@ -72,17 +71,6 @@ export const App: React.FC = () => {
               <p className="text-[15px] sm:text-base text-[#a0a3a7] leading-relaxed">
                 Inspect any EVM wallet to see its weekly volume and whether it qualifies for rewards.
               </p>
-              <p className="text-[14px] text-[#6c6f75]">
-                Not joined yet?{' '}
-                <a
-                  href={JOIN_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#bdb9ff] font-semibold border-b border-[#bdb9ff]/40 hover:border-[#bdb9ff] transition-colors inline-flex items-center gap-1"
-                >
-                  Join PopDex with code <code className="code">TRADE</code> <ExternalLink size={11} />
-                </a>
-              </p>
             </section>
 
             {/* Wallet Search Input */}
@@ -92,6 +80,19 @@ export const App: React.FC = () => {
                 onSearch={fetchWallet}
                 isLoading={isLoading}
               />
+              <div className="flex justify-center mt-4">
+                <a
+                  href={JOIN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="join-cta"
+                >
+                  <span className="text-[#a0a3a7]">Not joined yet?</span>
+                  <span className="text-white font-bold">Join PopDex with code</span>
+                  <code className="code !text-[13px]">{REFERRAL_CODE}</code>
+                  <ExternalLink size={13} className="text-[#bdb9ff]" />
+                </a>
+              </div>
             </section>
 
             {/* Rule card */}

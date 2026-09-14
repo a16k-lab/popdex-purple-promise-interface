@@ -47,6 +47,33 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
     return padTop + chartHeight - ratio * chartHeight;
   };
 
+  // "Nice" tick values (1 / 2 / 2.5 / 5 × 10^k) up to the highest bucket, at most 5 of them.
+  const yTicks = (() => {
+    const top = invertVol(maxTransformed);
+    if (!(top > 0)) return [] as number[];
+    const rough = top / 4;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((c) => c >= rough) ?? mag * 10;
+    const ticks: number[] = [];
+    for (let v = step; v <= top && ticks.length < 5; v += step) ticks.push(v);
+    return ticks;
+  })();
+
+  const formatUsdShort = (v: number) => {
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(v % 1_000 === 0 ? 0 : 1)}K`;
+    return `$${Math.round(v)}`;
+  };
+
+  // Bucket size of the series (what one point on the curve represents).
+  const bucketLabel = (() => {
+    const pts = data.allPoints;
+    if (pts.length < 2) return 'bucket';
+    const ms = Math.abs(pts[1].timestamp - pts[0].timestamp);
+    const h = Math.round(ms / 3_600_000);
+    return h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`;
+  })();
+
   // Past points cover the entire left half (0% to 50% X) - Dynamic normalized flow
   const rawPastCoords = data.pastPoints.map((p) => ({
     x: padLeft + p.percentAlongEpoch * halfWidth,
@@ -294,12 +321,11 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             </pattern>
           </defs>
 
-          {/* Normalized Grid lines */}
-          {[0.25, 0.5, 0.75, 1.0].map((ratio, idx) => {
-            const y = padTop + chartHeight * (1 - ratio);
-            const val = invertVol(ratio * maxTransformed);
+          {/* Y axis: round-dollar ticks placed on the sqrt scale (spacing shrinks toward the top). */}
+          {yTicks.map((val) => {
+            const y = getY(val);
             return (
-              <g key={idx} opacity={0.3}>
+              <g key={val} opacity={0.35}>
                 <line
                   x1={padLeft}
                   y1={y}
@@ -314,13 +340,24 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                   textAnchor="end"
                   fontSize="9"
                   fontFamily="monospace"
-                  fill="#6c6f75"
+                  fill="#a0a3a7"
                 >
-                  ${Math.round(val).toLocaleString()}
+                  {formatUsdShort(val)}
                 </text>
               </g>
             );
           })}
+          <text
+            x={padLeft - 8}
+            y={padTop - 6}
+            textAnchor="end"
+            fontSize="8"
+            fontFamily="monospace"
+            fill="#6c6f75"
+            letterSpacing="0.08em"
+          >
+            USD / {bucketLabel}
+          </text>
 
           <line
             x1={padLeft}
@@ -681,7 +718,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5">
           <Activity size={12} className="text-[#8077ff]" />
-          <span>Shaded area represents continuous trade volume integral up to current moment.</span>
+          <span>Curve shows trade volume per {bucketLabel} bucket · hover for running totals.</span>
         </div>
         <div className="font-mono text-white/50">
           Threshold: <strong className="text-white">$100,000 USD</strong>

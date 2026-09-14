@@ -121,6 +121,25 @@ html, body {
   .input:focus { border-color: var(--brand-soft); box-shadow: var(--ring); background: rgba(14, 14, 18, 0.75); }
   .input-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; letter-spacing: 0.01em; }
 
+  /* "Not joined yet?" pill under the search box. */
+  .join-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px 10px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    text-decoration: none;
+    background: rgba(77, 66, 252, 0.10);
+    border: 1px solid rgba(128, 119, 255, 0.45);
+    box-shadow: 0 0 0 4px rgba(128, 119, 255, 0.06), 0 10px 30px -14px rgba(77, 66, 252, 0.9);
+    transition: background 160ms ease, border-color 160ms ease, transform 120ms ease, box-shadow 160ms ease;
+  }
+  .join-cta:hover {
+    background: rgba(77, 66, 252, 0.18);
+    border-color: var(--brand-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(128, 119, 255, 0.10), 0 14px 34px -14px rgba(100, 90, 255, 1);
+  }
+
   /* Small uppercase caption (footer / counters). */
   .caption { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
 
