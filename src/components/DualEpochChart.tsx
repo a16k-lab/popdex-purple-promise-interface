@@ -1,0 +1,659 @@
+import React, { useState, useRef } from 'react';
+import type { ChartPoint, EpochConfig, WalletVolumeData } from '../types';
+import { formatDateLabel, getCountdown } from '../config/epochConfig';
+import { Activity, Sparkles, Clock } from 'lucide-react';
+
+interface DualEpochChartProps {
+  data: WalletVolumeData;
+  epochConfig: EpochConfig;
+}
+
+export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfig }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isHoveringFuture, setIsHoveringFuture] = useState(false);
+
+  const countdown = getCountdown(epochConfig.endTime);
+
+  const viewBoxWidth = 1000;
+  const viewBoxHeight = 380;
+  const padLeft = 40;
+  const padRight = 40;
+  const padTop = 50;
+  const padBottom = 45;
+
+  const chartWidth = viewBoxWidth - padLeft - padRight; // 920
+  const chartHeight = viewBoxHeight - padTop - padBottom;
+  const midX = padLeft + chartWidth / 2; // Exactly 500 (50% center junction)
+  const rightEdge = viewBoxWidth - padRight; // 960 (100% end of epoch)
+  const halfWidth = chartWidth / 2; // 460
+  const groundY = padTop + chartHeight;
+
+  // Dynamic Square-Root Normalizer (Sub-linear Power Transform)
+  // Compresses outlier whale peaks so standard trading activity remains clear, dynamic and off the floor
+  const transformVol = (v: number) => Math.sqrt(Math.max(0, v));
+  const invertVol = (t: number) => Math.pow(t, 2);
+
+  const maxIntervalVolume = Math.max(
+    ...data.allPoints.map((p) => p.intervalVolume || 0),
+    100
+  );
+  const maxTransformed = transformVol(maxIntervalVolume) * 1.08;
+
+  const getY = (val: number) => {
+    const t = transformVol(val);
+    const ratio = Math.min(1, Math.max(0, t / maxTransformed));
+    return padTop + chartHeight - ratio * chartHeight;
+  };
+
+  // Past points cover the entire left half (0% to 50% X) - Dynamic normalized flow
+  const pastPointsCoords = data.pastPoints.map((p) => {
+    const x = padLeft + p.percentAlongEpoch * halfWidth;
+    const y = getY(p.intervalVolume);
+    return { x, y, point: p };
+  });
+
+  // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
+  const livePointsCoords = data.livePoints.map((p) => {
+    const x = midX + p.percentAlongEpoch * halfWidth;
+    const y = getY(p.intervalVolume);
+    return { x, y, point: p };
+  });
+
+  // Connect junction seamlessly at 50% without any cliff drop
+  if (pastPointsCoords.length > 0 && livePointsCoords.length > 0) {
+    const junctionCoord = pastPointsCoords[pastPointsCoords.length - 1];
+    livePointsCoords[0].x = junctionCoord.x;
+    livePointsCoords[0].y = junctionCoord.y;
+  }
+
+  const liveHead = livePointsCoords.length > 0 ? livePointsCoords[livePointsCoords.length - 1] : null;
+  const nowX = liveHead ? liveHead.x : midX;
+  const nowY = liveHead ? liveHead.y : groundY;
+
+  const buildSmoothPath = (coords: { x: number; y: number }[]) => {
+    if (coords.length === 0) return '';
+    if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
+    let d = `M ${coords[0].x} ${coords[0].y}`;
+    for (let i = 1; i < coords.length; i++) {
+      const prev = coords[i - 1];
+      const curr = coords[i];
+      if (Math.abs(prev.y - curr.y) < 0.2) {
+        d += ` L ${curr.x} ${curr.y}`;
+      } else {
+        const cx = (prev.x + curr.x) / 2;
+        d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+      }
+    }
+    return d;
+  };
+
+  const pastLineD = buildSmoothPath(pastPointsCoords);
+  const liveLineD = buildSmoothPath(livePointsCoords);
+
+  const pastAreaD =
+    pastPointsCoords.length > 0
+      ? `${pastLineD} L ${midX} ${groundY} L ${padLeft} ${groundY} Z`
+      : '';
+
+  // Live area drops strictly at nowX
+  const liveAreaD =
+    livePointsCoords.length > 0
+      ? `${liveLineD} L ${nowX} ${groundY} L ${midX} ${groundY} Z`
+      : '';
+
+  const junctionPoint = pastPointsCoords[pastPointsCoords.length - 1] || { x: midX, y: groundY };
+
+  // Responsive badge coordinates to prevent overlapping collisions
+  const isNearJunction = nowX - midX < 115;
+  const transitionBadgeY = isNearJunction ? padTop - 15 : padTop - 32;
+  const nowBadgeY = isNearJunction ? padTop - 38 : padTop - 32;
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+
+    const scaleX = viewBoxWidth / rect.width;
+    const svgX = clientX * scaleX;
+
+    // If hovering in unelapsed future zone
+    if (svgX > nowX + 16 && svgX <= rightEdge + 10) {
+      setIsHoveringFuture(true);
+      setHoveredPoint(null);
+      setHoverCoords({ x: Math.min(rightEdge - 30, svgX), y: groundY - 50 });
+      return;
+    }
+
+    setIsHoveringFuture(false);
+    const allCoords = [...pastPointsCoords, ...livePointsCoords];
+    let closest = allCoords[0];
+    let minDist = Infinity;
+
+    for (const c of allCoords) {
+      const dist = Math.abs(c.x - svgX);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = c;
+      }
+    }
+
+    if (closest && minDist < 45) {
+      setHoveredPoint(closest.point);
+      setHoverCoords({ x: closest.x, y: closest.y });
+    } else {
+      setHoveredPoint(null);
+      setHoverCoords(null);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
+    setHoverCoords(null);
+    setIsHoveringFuture(false);
+  };
+
+  return (
+    <div className="w-full glass-panel rounded-2xl p-4 sm:p-5 border border-white/[0.09] relative overflow-hidden space-y-4">
+      {/* Chart Top Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+        {/* Left: Past Epoch */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-slate-500/40 border border-slate-400 flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-slate-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Past Baseline
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.05] text-slate-400">
+                7D Prior (Complete)
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-mono">
+              ${data.totalPastVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
+
+        {/* Center Indicator */}
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-white/50">
+            <Sparkles size={11} className="text-[#8077ff]" />
+            <span>50% Epoch Junction</span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#8077ff]/10 text-[#bdb9ff] border border-[#8077ff]/20">
+            ⚡ Sqrt Normalizer
+          </span>
+        </div>
+
+        {/* Right: Live Epoch */}
+        <div className="flex items-center gap-2.5 text-right">
+          <div>
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#8077ff]/20 text-[#bdb9ff] border border-[#8077ff]/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8077ff] animate-ping" />
+                Epoch #{epochConfig.epochNumber}
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#8077ff]">
+                Live Cycle (In Progress)
+              </span>
+            </div>
+            <p className="text-xs font-mono font-bold text-white flex items-center justify-end gap-1.5">
+              <span>Volume So Far:</span>
+              <span className={data.isEligible ? 'text-emerald-400' : 'text-[#bdb9ff]'}>
+                ${data.totalLiveVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </span>
+            </p>
+          </div>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#8077ff]/40 border border-[#8077ff] flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-[#8077ff]" />
+          </div>
+        </div>
+      </div>
+
+      {/* SVG Chart Canvas */}
+      <div ref={containerRef} className="relative w-full select-none">
+        <svg
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          className="w-full h-auto overflow-visible cursor-crosshair"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <defs>
+            <linearGradient id="pastAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#64748b" stopOpacity="0.25" />
+              <stop offset="70%" stopColor="#475569" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#0b0b0d" stopOpacity="0.0" />
+            </linearGradient>
+
+            <linearGradient id="liveAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8077ff" stopOpacity="0.45" />
+              <stop offset="60%" stopColor="#4d42fc" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#0b0b0d" stopOpacity="0.0" />
+            </linearGradient>
+
+            <filter id="purpleGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#8077ff" floodOpacity="0.75" />
+            </filter>
+
+            <filter id="junctionGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#8077ff" floodOpacity="0.9" />
+            </filter>
+
+            <pattern id="futureGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1" />
+            </pattern>
+          </defs>
+
+          {/* Normalized Grid lines */}
+          {[0.25, 0.5, 0.75, 1.0].map((ratio, idx) => {
+            const y = padTop + chartHeight * (1 - ratio);
+            const val = invertVol(ratio * maxTransformed);
+            return (
+              <g key={idx} opacity={0.3}>
+                <line
+                  x1={padLeft}
+                  y1={y}
+                  x2={viewBoxWidth - padRight}
+                  y2={y}
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={padLeft - 8}
+                  y={y + 3}
+                  textAnchor="end"
+                  fontSize="9"
+                  fontFamily="monospace"
+                  fill="#6c6f75"
+                >
+                  ${Math.round(val).toLocaleString()}
+                </text>
+              </g>
+            );
+          })}
+
+          <line
+            x1={padLeft}
+            y1={groundY}
+            x2={viewBoxWidth - padRight}
+            y2={groundY}
+            stroke="rgba(255, 255, 255, 0.1)"
+          />
+
+          {/* Past Curve (Left 50%) */}
+          <path d={pastAreaD} fill="url(#pastAreaGrad)" />
+          <path
+            d={pastLineD}
+            fill="none"
+            stroke="#64748b"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Future Unelapsed Zone (Between nowX and rightEdge) */}
+          {nowX < rightEdge - 15 && (
+            <g>
+              <rect
+                x={nowX}
+                y={padTop}
+                width={rightEdge - nowX}
+                height={chartHeight}
+                fill="url(#futureGrid)"
+              />
+              {/* Perfectly horizontal projection line from nowX to rightEdge */}
+              <line
+                x1={nowX}
+                y1={nowY}
+                x2={rightEdge}
+                y2={nowY}
+                stroke="#8077ff"
+                strokeWidth="1.5"
+                strokeDasharray="5 4"
+                opacity="0.45"
+              />
+              <g
+                transform={`translate(${(nowX + rightEdge) / 2}, ${
+                  nowY > groundY - 50 ? groundY - 55 : groundY - 26
+                })`}
+              >
+                <rect
+                  x="-72"
+                  y="-11"
+                  width="144"
+                  height="22"
+                  rx="6"
+                  fill="#141518"
+                  stroke="rgba(128, 119, 255, 0.35)"
+                  strokeWidth="1.2"
+                />
+                <text
+                  x="0"
+                  y="4.5"
+                  textAnchor="middle"
+                  fontSize="9.5"
+                  fontWeight="600"
+                  fill="#bdb9ff"
+                  fontFamily="monospace"
+                >
+                  ⏳ {countdown.formatted} Remaining
+                </text>
+              </g>
+            </g>
+          )}
+
+          {/* Live Curve (From midX strictly up to nowX) */}
+          <path d={liveAreaD} fill="url(#liveAreaGrad)" />
+          <path
+            d={liveLineD}
+            fill="none"
+            stroke="#8077ff"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#purpleGlow)"
+          />
+
+          {/* 50% Junction Indicator */}
+          <g>
+            <line
+              x1={midX}
+              y1={padTop - 8}
+              x2={midX}
+              y2={groundY}
+              stroke="#8077ff"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+              opacity="0.5"
+            />
+
+            <rect
+              x={midX - 50}
+              y={transitionBadgeY - 9}
+              width="100"
+              height="18"
+              rx="5"
+              fill="#141518"
+              stroke="#8077ff"
+              strokeWidth="1"
+              opacity="0.95"
+            />
+            <text
+              x={midX}
+              y={transitionBadgeY + 3.5}
+              textAnchor="middle"
+              fontSize="9"
+              fontWeight="700"
+              fill="#bdb9ff"
+              fontFamily="system-ui"
+            >
+              ⚡ Transition
+            </text>
+
+            <circle
+              cx={junctionPoint.x}
+              cy={junctionPoint.y}
+              r="6"
+              fill="#8077ff"
+              opacity="0.3"
+              className="animate-ping"
+            />
+            <circle
+              cx={junctionPoint.x}
+              cy={junctionPoint.y}
+              r="4.5"
+              fill="#ffffff"
+              stroke="#8077ff"
+              strokeWidth="2"
+              filter="url(#junctionGlow)"
+            />
+          </g>
+
+          {/* Live Head / NOW Marker */}
+          {liveHead && nowX < rightEdge && (
+            <g>
+              <line
+                x1={nowX}
+                y1={nowBadgeY - 10}
+                x2={nowX}
+                y2={groundY}
+                stroke="#8077ff"
+                strokeWidth="1.2"
+                strokeDasharray="3 3"
+                opacity="0.8"
+              />
+              <circle
+                cx={nowX}
+                cy={nowY}
+                r="7"
+                fill="#8077ff"
+                opacity="0.35"
+                className="animate-ping"
+              />
+              <circle
+                cx={nowX}
+                cy={nowY}
+                r="4.5"
+                fill="#ffffff"
+                stroke="#8077ff"
+                strokeWidth="2.2"
+                filter="url(#purpleGlow)"
+              />
+              <rect
+                x={nowX - 28}
+                y={nowBadgeY - 10}
+                width="56"
+                height="20"
+                rx="5"
+                fill="#141518"
+                stroke="#8077ff"
+                strokeWidth="1.2"
+                opacity="0.95"
+              />
+              <text
+                x={nowX}
+                y={nowBadgeY + 3.5}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight="800"
+                fill="#8077ff"
+                fontFamily="system-ui"
+              >
+                ● NOW
+              </text>
+            </g>
+          )}
+
+          {/* Axis Time Labels */}
+          <text
+            x={padLeft}
+            y={groundY + 18}
+            fontSize="9.5"
+            fill="#64748b"
+            fontFamily="monospace"
+            textAnchor="start"
+          >
+            {formatDateLabel(epochConfig.pastStartTime)}
+          </text>
+
+          <text
+            x={midX}
+            y={groundY + 18}
+            fontSize="9.5"
+            fontWeight="bold"
+            fill="#bdb9ff"
+            fontFamily="monospace"
+            textAnchor="middle"
+          >
+            {formatDateLabel(epochConfig.startTime)}
+          </text>
+
+          {/* If nowX is separated enough from start and end, show Now label without collision */}
+          {nowX > midX + 115 && nowX < rightEdge - 90 && (
+            <text
+              x={nowX}
+              y={groundY + 18}
+              fontSize="9.5"
+              fontWeight="bold"
+              fill="#8077ff"
+              fontFamily="monospace"
+              textAnchor="middle"
+            >
+              {formatDateLabel(data.livePoints[data.livePoints.length - 1]?.timestamp || Date.now())}
+            </text>
+          )}
+
+          <text
+            x={rightEdge}
+            y={groundY + 18}
+            fontSize="9.5"
+            fill="#64748b"
+            fontFamily="monospace"
+            textAnchor="end"
+          >
+            {formatDateLabel(epochConfig.endTime)}
+          </text>
+
+          {/* Hover Crosshair for Elapsed Points */}
+          {hoverCoords && hoveredPoint && (
+            <g>
+              <line
+                x1={hoverCoords.x}
+                y1={padTop}
+                x2={hoverCoords.x}
+                y2={groundY}
+                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#64748b'}
+                strokeWidth="1.2"
+                strokeDasharray="3 3"
+                opacity="0.8"
+              />
+              <circle
+                cx={hoverCoords.x}
+                cy={hoverCoords.y}
+                r="5.5"
+                fill="#ffffff"
+                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#64748b'}
+                strokeWidth="2"
+                filter={hoveredPoint.epochType === 'live' ? 'url(#purpleGlow)' : undefined}
+              />
+            </g>
+          )}
+        </svg>
+
+        {/* Floating Tooltip for Elapsed Historical / Live Points */}
+        {hoverCoords && hoveredPoint && !isHoveringFuture && (
+          <div
+            className="absolute pointer-events-none z-30 transition-transform duration-75"
+            style={{
+              left: `${(hoverCoords.x / viewBoxWidth) * 100}%`,
+              top: `${Math.max(10, (hoverCoords.y / viewBoxHeight) * 100 - 30)}%`,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            <div className="bg-[#141518]/95 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-2xl text-xs min-w-[195px] space-y-1.5">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-1">
+                <span
+                  className={`font-bold uppercase tracking-wider text-[10px] ${
+                    hoveredPoint.epochType === 'live' ? 'text-[#8077ff]' : 'text-slate-400'
+                  }`}
+                >
+                  {hoveredPoint.epochType === 'live' ? '● Live Elapsed' : '○ Past Baseline'}
+                </span>
+                <span className="text-white/50 font-mono text-[10px]">{hoveredPoint.timeLabel}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-white/80">
+                <span>Interval:</span>
+                <span className="font-mono font-bold text-white">
+                  ${hoveredPoint.intervalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center text-white/80">
+                <span>Cumulative:</span>
+                <span
+                  className={`font-mono font-bold ${
+                    hoveredPoint.epochType === 'live' ? 'text-[#bdb9ff]' : 'text-slate-300'
+                  }`}
+                >
+                  ${hoveredPoint.cumulativeVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              {hoveredPoint.epochType === 'live' && (
+                <div className="pt-1 border-t border-white/[0.08] flex items-center justify-between text-[11px]">
+                  <span className="text-white/50">$100K Target:</span>
+                  <span
+                    className={`font-bold ${
+                      hoveredPoint.cumulativeVolume >= 100_000
+                        ? 'text-emerald-400'
+                        : 'text-rose-400'
+                    }`}
+                  >
+                    {hoveredPoint.cumulativeVolume >= 100_000
+                      ? '✓ Reached'
+                      : `${Math.round((hoveredPoint.cumulativeVolume / 100_000) * 100)}%`}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Floating Tooltip for Unelapsed Future Zone */}
+        {hoverCoords && isHoveringFuture && (
+          <div
+            className="absolute pointer-events-none z-30 transition-transform duration-75"
+            style={{
+              left: `${(hoverCoords.x / viewBoxWidth) * 100}%`,
+              top: `${Math.max(10, (hoverCoords.y / viewBoxHeight) * 100 - 30)}%`,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            <div className="bg-[#141518]/95 backdrop-blur-md border border-[#8077ff]/30 rounded-xl p-3 shadow-2xl text-xs min-w-[210px] space-y-1.5">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-1">
+                <span className="font-bold uppercase tracking-wider text-[10px] text-[#8077ff] flex items-center gap-1">
+                  <Clock size={11} /> Unelapsed Epoch
+                </span>
+                <span className="text-[#bdb9ff] font-mono text-[10px]">{countdown.formatted} left</span>
+              </div>
+              <div className="flex justify-between items-center text-white/80">
+                <span>Goal Threshold:</span>
+                <span className="font-mono font-bold text-white">$100,000.00</span>
+              </div>
+              <div className="flex justify-between items-center text-white/80">
+                <span>Current Volume:</span>
+                <span className="font-mono font-bold text-[#bdb9ff]">
+                  ${data.totalLiveVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-white/[0.08] flex items-center justify-between text-[11px]">
+                <span className="text-white/50">Status:</span>
+                <span className={`font-bold ${data.isEligible ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {data.isEligible
+                    ? '✓ Target Achieved'
+                    : `$${data.remainingUsdNeeded.toLocaleString()} Needed by End`}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Chart Footer Note */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
+        <div className="flex items-center gap-1.5">
+          <Activity size={12} className="text-[#8077ff]" />
+          <span>Shaded area represents continuous trade volume integral up to current moment.</span>
+        </div>
+        <div className="font-mono text-white/50">
+          Threshold: <strong className="text-white">$100,000 USD</strong>
+        </div>
+      </div>
+    </div>
+  );
+};
