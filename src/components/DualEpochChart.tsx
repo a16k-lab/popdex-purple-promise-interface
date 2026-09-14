@@ -394,14 +394,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               ⚡ Transition
             </text>
 
-            <circle
-              cx={junctionPoint.x}
-              cy={junctionPoint.y}
-              r="6"
-              fill="#8077ff"
-              opacity="0.3"
-              className="animate-ping"
-            />
+            <circle cx={junctionPoint.x} cy={junctionPoint.y} r="9" fill="#8077ff" opacity="0.18" />
             <circle
               cx={junctionPoint.x}
               cy={junctionPoint.y}
@@ -426,14 +419,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 strokeDasharray="3 3"
                 opacity="0.8"
               />
-              <circle
-                cx={nowX}
-                cy={nowY}
-                r="7"
-                fill="#8077ff"
-                opacity="0.35"
-                className="animate-ping"
-              />
+              <circle cx={nowX} cy={nowY} r="10" fill="#8077ff" opacity="0.18" />
               <circle
                 cx={nowX}
                 cy={nowY}

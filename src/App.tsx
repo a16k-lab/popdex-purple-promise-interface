@@ -35,10 +35,9 @@ export const App: React.FC = () => {
     [epochConfig]
   );
 
+  // Full page reload so the app starts from a clean state (like the browser refresh button).
   const handleReset = () => {
-    setVolumeData(null);
-    setWalletAddress('');
-    setIsLoading(false);
+    window.location.reload();
   };
 
   const handleCopy = () => {
