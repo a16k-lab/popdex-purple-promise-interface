@@ -1,6 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { ChartPoint, EpochConfig, WalletVolumeData } from '../types';
 import { formatDateLabel, getCountdown } from '../config/epochConfig';
+
+const shortDate = (ts: number) =>
+  new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 import { Activity, Sparkles, Clock } from 'lucide-react';
 
 interface DualEpochChartProps {
@@ -16,10 +19,25 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
 
   const countdown = getCountdown(epochConfig.endTime);
 
-  const viewBoxWidth = 1000;
-  const viewBoxHeight = 380;
-  const padLeft = 40;
-  const padRight = 40;
+  // The SVG is drawn in CSS pixels: the viewBox tracks the container's real width,
+  // so labels, badges and stroke widths stay the same size on a phone as on a desktop
+  // instead of being scaled down with the chart.
+  const [containerWidth, setContainerWidth] = useState(1000);
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setContainerWidth(Math.max(300, Math.round(el.getBoundingClientRect().width)));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const isNarrow = containerWidth < 640;
+  const viewBoxWidth = containerWidth;
+  const viewBoxHeight = isNarrow ? 340 : 380;
+  const padLeft = isNarrow ? 44 : 48;
+  const padRight = isNarrow ? 14 : 40;
   const padTop = 50;
   const padBottom = 45;
 
@@ -173,10 +191,10 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const transitionBadgeY = isNearJunction ? padTop - 15 : padTop - 32;
   const nowBadgeY = isNearJunction ? padTop - 38 : padTop - 32;
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  const handlePointer = (clientXPage: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const clientX = e.clientX - rect.left;
+    const clientX = clientXPage - rect.left;
 
     const scaleX = viewBoxWidth / rect.width;
     const svgX = clientX * scaleX;
@@ -209,6 +227,13 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       setHoveredPoint(null);
       setHoverCoords(null);
     }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => handlePointer(e.clientX);
+  // Touch: drag along the chart to scrub; the tooltip stays after lifting the finger.
+  const handleTouch = (e: React.TouchEvent<SVGSVGElement>) => {
+    const t = e.touches[0];
+    if (t) handlePointer(t.clientX);
   };
 
   const handleMouseLeave = () => {
@@ -284,6 +309,9 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           className="w-full h-auto overflow-visible cursor-crosshair"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouch}
+          onTouchMove={handleTouch}
+          style={{ touchAction: 'pan-y' }}
         >
           <defs>
             <linearGradient id="pastAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -390,6 +418,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 strokeDasharray="5 4"
                 opacity="0.45"
               />
+              {rightEdge - nowX > 170 && (
               <g
                 transform={`translate(${(nowX + rightEdge) / 2}, ${
                   nowY > groundY - 50 ? groundY - 55 : groundY - 26
@@ -417,6 +446,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                   ⏳ {countdown.formatted} Remaining
                 </text>
               </g>
+              )}
             </g>
           )}
 
@@ -537,7 +567,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fontFamily="monospace"
             textAnchor="start"
           >
-            {formatDateLabel(epochConfig.pastStartTime)}
+            {isNarrow ? shortDate(epochConfig.pastStartTime) : formatDateLabel(epochConfig.pastStartTime)}
           </text>
 
           <text
@@ -549,7 +579,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fontFamily="monospace"
             textAnchor="middle"
           >
-            {formatDateLabel(epochConfig.startTime)}
+            {isNarrow ? shortDate(epochConfig.startTime) : formatDateLabel(epochConfig.startTime)}
           </text>
 
           {/* If nowX is separated enough from start and end, show Now label without collision */}
@@ -575,7 +605,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fontFamily="monospace"
             textAnchor="end"
           >
-            {formatDateLabel(epochConfig.endTime)}
+            {isNarrow ? shortDate(epochConfig.endTime) : formatDateLabel(epochConfig.endTime)}
           </text>
 
           {/* Hover Crosshair for Elapsed Points */}
@@ -609,7 +639,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           <div
             className="absolute pointer-events-none z-30 transition-transform duration-75"
             style={{
-              left: `${(hoverCoords.x / viewBoxWidth) * 100}%`,
+              left: `${(Math.min(Math.max(hoverCoords.x, 105), viewBoxWidth - 105) / viewBoxWidth) * 100}%`,
               top: `${Math.max(10, (hoverCoords.y / viewBoxHeight) * 100 - 30)}%`,
               transform: 'translate(-50%, -100%)',
             }}
@@ -669,7 +699,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           <div
             className="absolute pointer-events-none z-30 transition-transform duration-75"
             style={{
-              left: `${(hoverCoords.x / viewBoxWidth) * 100}%`,
+              left: `${(Math.min(Math.max(hoverCoords.x, 105), viewBoxWidth - 105) / viewBoxWidth) * 100}%`,
               top: `${Math.max(10, (hoverCoords.y / viewBoxHeight) * 100 - 30)}%`,
               transform: 'translate(-50%, -100%)',
             }}
