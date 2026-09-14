@@ -8,6 +8,7 @@ import { WalletInput } from './components/WalletInput';
 import { DualEpochChart } from './components/DualEpochChart';
 import { EligibilityCard } from './components/EligibilityCard';
 import { EpochStatsOverview } from './components/EpochStatsOverview';
+import { EpochProgress } from './components/EpochProgress';
 import { ExternalLink, ArrowLeft, Check, Copy } from 'lucide-react';
 import { Bokeh } from './components/Bokeh';
 import { JOIN_URL, REFERRAL_CODE } from './config/links';
@@ -114,6 +115,7 @@ export const App: React.FC = () => {
                   <strong className="text-[#17a781] font-semibold">Purple Promise Verified</strong> status and protocol rewards.
                 </p>
               </div>
+              <EpochProgress epochConfig={epochConfig} />
             </section>
           </div>
         )}

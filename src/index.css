@@ -90,6 +90,34 @@ html, body {
     border-color: rgba(23, 167, 129, 0.4);
   }
 
+  /* Epoch progress bar under the rule card. */
+  .epoch-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+  .epoch-fill {
+    position: relative;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #128a6a, #17a781 60%, #5fd1b3);
+    box-shadow: 0 0 12px rgba(23, 167, 129, 0.7);
+    transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .epoch-fill::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    background-size: 60px 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 2.6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -60px 0; }
+    100% { background-position: calc(100% + 60px) 0; }
+  }
+
   /* Step-number pill from Creators. */
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
@@ -180,5 +208,5 @@ html, body {
 ::-webkit-scrollbar-thumb:hover { background: #4d42fc; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bokeh span, .animate-fadeIn { animation: none; }
+  .bokeh span, .animate-fadeIn, .epoch-fill::after { animation: none; }
 }
