@@ -22,7 +22,7 @@ export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data }) 
         </div>
         <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#bdb9ff]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#8077ff]" />
-          <span>Area Integral</span>
+          <span>Cumulative this epoch</span>
         </div>
       </div>
 
