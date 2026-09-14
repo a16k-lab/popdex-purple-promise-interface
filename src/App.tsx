@@ -11,7 +11,7 @@ import { EpochStatsOverview } from './components/EpochStatsOverview';
 import { EpochProgress } from './components/EpochProgress';
 import { ExternalLink, ArrowLeft, Check, Copy } from 'lucide-react';
 import { Bokeh } from './components/Bokeh';
-import { JOIN_URL, REFERRAL_CODE } from './config/links';
+import { JOIN_URL } from './config/links';
 
 const formatTarget = (v: number) => `$${v.toLocaleString('en-US')}`;
 const formatTargetShort = (v: number) =>
@@ -93,8 +93,7 @@ export const App: React.FC = () => {
                   className="join-cta"
                 >
                   <span className="text-[#a0a3a7]">Not joined yet?</span>
-                  <span className="text-white font-bold">Join PopDex with code</span>
-                  <code className="code !text-[13px]">{REFERRAL_CODE}</code>
+                  <span className="text-white font-bold">Join PopDex</span>
                   <ExternalLink size={13} className="text-[#bdb9ff]" />
                 </a>
               </div>
