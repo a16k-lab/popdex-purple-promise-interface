@@ -1,40 +1,20 @@
 import React from 'react';
 
-export const AmbientBackground: React.FC = () => {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {/* 48px Cyberpunk Grid */}
-      <div className="absolute inset-0 cyber-grid opacity-60" />
-
-      {/* Ambient Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0b0b0d]/50 to-[#0b0b0d]" />
-
-      {/* Floating Bokeh Glowing Orbs */}
-      <div
-        className="absolute w-[500px] h-[500px] rounded-full blur-[110px] opacity-25 animate-orb-1"
-        style={{
-          background: 'radial-gradient(circle, #8077ff 0%, #4d42fc 50%, transparent 75%)',
-          top: '-10%',
-          left: '15%',
-        }}
-      />
-      <div
-        className="absolute w-[420px] h-[420px] rounded-full blur-[100px] opacity-15 animate-orb-2"
-        style={{
-          background: 'radial-gradient(circle, #10b981 0%, #059669 45%, transparent 75%)',
-          bottom: '10%',
-          right: '10%',
-        }}
-      />
-      <div
-        className="absolute w-[360px] h-[360px] rounded-full blur-[90px] opacity-15 animate-orb-1"
-        style={{
-          background: 'radial-gradient(circle, #f03277 0%, #4d42fc 45%, transparent 75%)',
-          top: '40%',
-          right: '-5%',
-          animationDelay: '-7s',
-        }}
-      />
-    </div>
-  );
-};
+/** Page backdrop: 48px grid plus the same purple ambient light used on the Creators form. */
+export const AmbientBackground: React.FC = () => (
+  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="absolute inset-0 cyber-grid" />
+    <div
+      className="absolute inset-0"
+      style={{
+        background: [
+          'radial-gradient(40% 45% at 38% 42%, rgba(77, 66, 252, 0.22), transparent 70%)',
+          'radial-gradient(30% 35% at 66% 60%, rgba(100, 90, 255, 0.16), transparent 70%)',
+          'radial-gradient(22% 25% at 58% 30%, rgba(240, 50, 119, 0.07), transparent 70%)',
+          'radial-gradient(35% 35% at 100% 100%, rgba(100, 90, 255, 0.10), transparent 70%)',
+          'linear-gradient(180deg, rgba(11,11,13,0.1), rgba(11,11,13,0.85))',
+        ].join(', '),
+      }}
+    />
+  </div>
+);

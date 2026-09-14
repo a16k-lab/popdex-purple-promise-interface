@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, X, ArrowRight } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 
 interface WalletInputProps {
   currentAddress: string;
@@ -7,11 +7,7 @@ interface WalletInputProps {
   isLoading: boolean;
 }
 
-export const WalletInput: React.FC<WalletInputProps> = ({
-  currentAddress,
-  onSearch,
-  isLoading,
-}) => {
+export const WalletInput: React.FC<WalletInputProps> = ({ currentAddress, onSearch, isLoading }) => {
   const [inputVal, setInputVal] = useState(currentAddress);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -19,11 +15,11 @@ export const WalletInput: React.FC<WalletInputProps> = ({
     if (e) e.preventDefault();
     const clean = inputVal.trim();
     if (!clean) {
-      setErrorMsg('Please enter an EVM wallet address');
+      setErrorMsg('Please enter an EVM wallet address.');
       return;
     }
     if (!/^0x[a-fA-F0-9]{40}$/.test(clean)) {
-      setErrorMsg('Invalid EVM address format (must start with 0x and be 42 characters)');
+      setErrorMsg('Enter a valid Ethereum address (0x + 40 hex characters).');
       return;
     }
     setErrorMsg(null);
@@ -31,16 +27,9 @@ export const WalletInput: React.FC<WalletInputProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* Search Bar Form */}
-      <form onSubmit={handleSubmit} className="relative group">
-        <div className="relative flex items-center rounded-2xl bg-[#141518]/90 border border-white/[0.12] group-hover:border-[#8077ff]/40 focus-within:border-[#8077ff] focus-within:shadow-[0_0_25px_rgba(128,119,255,0.25)] transition-all duration-300 backdrop-blur-xl p-1.5">
-          {/* Left Wallet Icon */}
-          <div className="pl-3.5 pr-2 text-[#a0a3a7] group-hover:text-[#8077ff] transition-colors">
-            <Wallet size={20} />
-          </div>
-
-          {/* Input Element */}
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:items-stretch">
+        <div className="relative flex-1 min-w-0">
           <input
             type="text"
             value={inputVal}
@@ -48,52 +37,38 @@ export const WalletInput: React.FC<WalletInputProps> = ({
               setInputVal(e.target.value);
               if (errorMsg) setErrorMsg(null);
             }}
-            placeholder="Enter EVM Wallet Address (0x...) and press Enter"
-            className="w-full bg-transparent px-2 py-3 text-sm sm:text-base font-mono text-white placeholder-white/30 focus:outline-none"
+            placeholder="0x000000...000"
+            className="input input-mono pr-11"
             spellCheck={false}
             autoComplete="off"
             autoFocus
           />
-
-          {/* Clear Button */}
           {inputVal && (
             <button
               type="button"
               onClick={() => setInputVal('')}
-              className="p-1.5 mr-1 text-white/40 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-              title="Clear input"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#6c6f75] hover:text-white hover:bg-white/10 transition-colors"
+              title="Clear"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           )}
-
-          {/* Submit Action Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#4d42fc] to-[#645aff] hover:from-[#5b51fd] hover:to-[#786fff] text-white text-sm font-semibold shadow-[0_0_20px_rgba(77,66,252,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Checking...</span>
-              </span>
-            ) : (
-              <>
-                <span>Inspect</span>
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
         </div>
 
-        {/* Validation Error Message */}
-        {errorMsg && (
-          <p className="absolute -bottom-6 left-2 text-xs text-rose-400 font-medium animate-fadeIn">
-            {errorMsg}
-          </p>
-        )}
-      </form>
-    </div>
+        <button type="submit" disabled={isLoading} className="btn shrink-0 justify-center">
+          {isLoading ? 'Checking…' : 'Inspect'}
+          {!isLoading && <ArrowRight size={14} strokeWidth={2.6} />}
+        </button>
+      </div>
+
+      {errorMsg && (
+        <p className="mt-3 flex items-center gap-2 text-sm font-medium text-[#f03277] animate-fadeIn" role="alert">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+            <path d="M12 8v5M12 16.5v.5" /><circle cx="12" cy="12" r="9" />
+          </svg>
+          {errorMsg}
+        </p>
+      )}
+    </form>
   );
 };

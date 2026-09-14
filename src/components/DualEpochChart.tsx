@@ -155,24 +155,24 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   };
 
   return (
-    <div className="w-full glass-panel rounded-2xl p-4 sm:p-5 border border-white/[0.09] relative overflow-hidden space-y-4">
+    <div className="w-full glass-panel rounded-2xl p-5 sm:p-6 space-y-4">
       {/* Chart Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
         {/* Left: Past Epoch */}
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-slate-500/40 border border-slate-400 flex items-center justify-center">
-            <div className="w-1 h-1 rounded-full bg-slate-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-white/10 border border-[#a0a3a7] flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-[#a0a3a7]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#a0a3a7]">
                 Past Baseline
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.05] text-slate-400">
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.05] text-[#a0a3a7]">
                 7D Prior (Complete)
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-mono">
+            <p className="text-xs text-[#6c6f75] font-mono">
               ${data.totalPastVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -203,7 +203,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             </div>
             <p className="text-xs font-mono font-bold text-white flex items-center justify-end gap-1.5">
               <span>Volume So Far:</span>
-              <span className={data.isEligible ? 'text-emerald-400' : 'text-[#bdb9ff]'}>
+              <span className={data.isEligible ? 'text-[#17a781]' : 'text-[#bdb9ff]'}>
                 ${data.totalLiveVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </p>
@@ -224,8 +224,8 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
         >
           <defs>
             <linearGradient id="pastAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#64748b" stopOpacity="0.25" />
-              <stop offset="70%" stopColor="#475569" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#6c6f75" stopOpacity="0.25" />
+              <stop offset="70%" stopColor="#4c4f55" stopOpacity="0.05" />
               <stop offset="100%" stopColor="#0b0b0d" stopOpacity="0.0" />
             </linearGradient>
 
@@ -289,7 +289,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           <path
             d={pastLineD}
             fill="none"
-            stroke="#64748b"
+            stroke="#6c6f75"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -473,7 +473,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             x={padLeft}
             y={groundY + 18}
             fontSize="9.5"
-            fill="#64748b"
+            fill="#6c6f75"
             fontFamily="monospace"
             textAnchor="start"
           >
@@ -511,7 +511,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             x={rightEdge}
             y={groundY + 18}
             fontSize="9.5"
-            fill="#64748b"
+            fill="#6c6f75"
             fontFamily="monospace"
             textAnchor="end"
           >
@@ -526,7 +526,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 y1={padTop}
                 x2={hoverCoords.x}
                 y2={groundY}
-                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#64748b'}
+                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#6c6f75'}
                 strokeWidth="1.2"
                 strokeDasharray="3 3"
                 opacity="0.8"
@@ -536,7 +536,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 cy={hoverCoords.y}
                 r="5.5"
                 fill="#ffffff"
-                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#64748b'}
+                stroke={hoveredPoint.epochType === 'live' ? '#8077ff' : '#6c6f75'}
                 strokeWidth="2"
                 filter={hoveredPoint.epochType === 'live' ? 'url(#purpleGlow)' : undefined}
               />
@@ -554,11 +554,11 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               transform: 'translate(-50%, -100%)',
             }}
           >
-            <div className="bg-[#141518]/95 backdrop-blur-md border border-white/15 rounded-xl p-3 shadow-2xl text-xs min-w-[195px] space-y-1.5">
+            <div className="bg-[#141518]/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl text-xs min-w-[195px] space-y-1.5">
               <div className="flex items-center justify-between border-b border-white/[0.08] pb-1">
                 <span
                   className={`font-bold uppercase tracking-wider text-[10px] ${
-                    hoveredPoint.epochType === 'live' ? 'text-[#8077ff]' : 'text-slate-400'
+                    hoveredPoint.epochType === 'live' ? 'text-[#8077ff]' : 'text-[#a0a3a7]'
                   }`}
                 >
                   {hoveredPoint.epochType === 'live' ? '● Live Elapsed' : '○ Past Baseline'}
@@ -590,8 +590,8 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                   <span
                     className={`font-bold ${
                       hoveredPoint.cumulativeVolume >= 100_000
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
+                        ? 'text-[#17a781]'
+                        : 'text-[#f03277]'
                     }`}
                   >
                     {hoveredPoint.cumulativeVolume >= 100_000
@@ -633,7 +633,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               </div>
               <div className="pt-1 border-t border-white/[0.08] flex items-center justify-between text-[11px]">
                 <span className="text-white/50">Status:</span>
-                <span className={`font-bold ${data.isEligible ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`font-bold ${data.isEligible ? 'text-[#17a781]' : 'text-[#f03277]'}`}>
                   {data.isEligible
                     ? '✓ Target Achieved'
                     : `$${data.remainingUsdNeeded.toLocaleString()} Needed by End`}
