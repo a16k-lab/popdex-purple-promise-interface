@@ -45,7 +45,7 @@ export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data }) 
       {/* Card 3: Target Goal */}
       <div className="glass-panel rounded-xl p-4 border border-white/[0.08] relative overflow-hidden group hover:border-emerald-500/40 transition-all duration-200">
         <div className="flex items-center justify-between text-white/50 mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider">Pinky Promise Goal</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">Purple Promise Goal</span>
           <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400">
             <Target size={15} />
           </div>

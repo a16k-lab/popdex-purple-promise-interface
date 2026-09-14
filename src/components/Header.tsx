@@ -22,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ epochConfig }) => {
 
   return (
     <header className="w-full border-b border-white/[0.08] bg-[#0b0b0d]/85 backdrop-blur-xl sticky top-0 z-50 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-      {/* Brand Identity - Official PopDEX Logo + /PinkyPromise + Aligned 3P Badge */}
+      {/* Brand Identity - Official PopDEX Logo + /PurplePromise + Aligned 3P Badge */}
       <div className="flex items-center gap-2 sm:gap-2.5 select-none">
         {/* Official PopDEX Logo */}
         <img
@@ -31,9 +31,9 @@ export const Header: React.FC<HeaderProps> = ({ epochConfig }) => {
           className="h-6 sm:h-7 w-auto object-contain block drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]"
         />
 
-        {/* /PinkyPromise Text */}
+        {/* /PurplePromise Text */}
         <span className="text-lg sm:text-xl font-bold tracking-tight text-[#8077ff] drop-shadow-[0_0_8px_rgba(128,119,255,0.4)] leading-none">
-          /PinkyPromise
+          /PurplePromise
         </span>
 
         {/* 3P Badge - Vertically aligned perfectly with flex items-center */}

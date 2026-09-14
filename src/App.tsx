@@ -52,7 +52,7 @@ export const App: React.FC = () => {
       {/* Dynamic Cyberpunk Ambient Background */}
       <AmbientBackground />
 
-      {/* Sticky PopDEX /PinkyPromise Header */}
+      {/* Sticky PopDEX /PurplePromise Header */}
       <Header epochConfig={epochConfig} />
 
       {/* Main Content Area */}
@@ -70,7 +70,7 @@ export const App: React.FC = () => {
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
                 Trade Volume & <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-white via-[#bdb9ff] to-[#8077ff] bg-clip-text text-transparent">
-                  Pinky Promise Eligibility
+                  Purple Promise Eligibility
                 </span>
               </h1>
 
@@ -105,7 +105,7 @@ export const App: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-xs text-white/60 leading-relaxed">
-                      Generate <strong className="text-white font-mono">$100K+</strong> volume in the active 7-day epoch to earn <strong className="text-emerald-400">PinkyPromise Verified</strong> status and protocol rewards.
+                      Generate <strong className="text-white font-mono">$100K+</strong> volume in the active 7-day epoch to earn <strong className="text-emerald-400">PurplePromise Verified</strong> status and protocol rewards.
                     </p>
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export const App: React.FC = () => {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="PopDEX" className="h-4 w-auto object-contain opacity-75" />
-            <span className="font-semibold text-white/70">/PinkyPromise (3P)</span>
+            <span className="font-semibold text-white/70">/PurplePromise (3P)</span>
           </div>
 
           <div className="flex items-center gap-4 text-white/60">

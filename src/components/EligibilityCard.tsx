@@ -48,12 +48,12 @@ export const EligibilityCard: React.FC<EligibilityCardProps> = ({ data }) => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
               <Sparkles size={12} className="text-emerald-400" />
-              <span>PinkyPromise Verified</span>
+              <span>PurplePromise Verified</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
 
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              🎉 <span className="text-emerald-400">PinkyPromise Verified</span>: Reward Eligible
+              🎉 <span className="text-emerald-400">PurplePromise Verified</span>: Reward Eligible
             </h2>
 
             <p className="text-xs sm:text-sm text-emerald-100/70 font-medium">
