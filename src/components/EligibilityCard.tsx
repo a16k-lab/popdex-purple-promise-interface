@@ -53,7 +53,7 @@ export const EligibilityCard: React.FC<EligibilityCardProps> = ({ data }) => {
             </span>
 
             <h2 className="text-[22px] sm:text-[25px] font-bold text-white tracking-[-0.015em] leading-tight">
-              <span className="text-[#17a781]">PurplePromise Verified</span> — reward eligible
+              <span className="text-[#17a781]">Purple Promise Verified</span> — reward eligible
             </h2>
 
             <p className="text-[15px] text-[#a0a3a7] leading-relaxed">

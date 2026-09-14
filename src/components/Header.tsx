@@ -21,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({ epochConfig }) => {
       <div className="flex items-center gap-2.5 select-none">
         <img src="/logo.png" alt="PopDEX" className="h-5 sm:h-6 w-auto block" />
         <span className="text-[13px] sm:text-[15px] font-semibold text-[#8077ff] pt-0.5 tracking-[0.01em]">
-          /PurplePromise
+          /Purple Promise
         </span>
         <span className="pill hidden sm:inline-flex">3P</span>
       </div>

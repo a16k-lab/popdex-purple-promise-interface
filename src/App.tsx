@@ -53,7 +53,7 @@ export const App: React.FC = () => {
       {/* Dynamic Cyberpunk Ambient Background */}
       <AmbientBackground />
 
-      {/* Sticky PopDEX /PurplePromise Header */}
+      {/* Sticky PopDEX /Purple Promise Header */}
       <Header epochConfig={epochConfig} />
 
       {/* Main Content Area */}
@@ -92,7 +92,7 @@ export const App: React.FC = () => {
                 </div>
                 <p className="text-[15px] text-[#a0a3a7] leading-relaxed">
                   Generate <code className="code">$100K+</code> volume in the active 7-day epoch to earn{' '}
-                  <strong className="text-[#17a781] font-semibold">PurplePromise Verified</strong> status and protocol rewards.
+                  <strong className="text-[#17a781] font-semibold">Purple Promise Verified</strong> status and protocol rewards.
                 </p>
               </div>
             </section>
@@ -154,7 +154,7 @@ export const App: React.FC = () => {
       {/* Footer — quiet caption row, like the Creators form */}
       <footer className="w-full px-5 sm:px-9 py-7 relative z-10">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="caption">PopDex PurplePromise · 3P</span>
+          <span className="caption">PopDex Purple Promise · 3P</span>
           <div className="flex items-center gap-5 caption">
             <a href="https://app.popdex.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1">
               PopDex App <ExternalLink size={10} />
