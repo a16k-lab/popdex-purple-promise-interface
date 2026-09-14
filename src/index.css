@@ -118,6 +118,31 @@ html, body {
     100% { background-position: calc(100% + 60px) 0; }
   }
 
+  /* Segmented epoch switch (phones only). */
+  .seg {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(14, 14, 18, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .seg-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    padding: 9px 12px;
+    border: 0; border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+  .seg-btn.active { background: rgba(77, 66, 252, 0.18); color: #fff; box-shadow: inset 0 0 0 1px rgba(128, 119, 255, 0.45); }
+  .seg-btn.active.past { background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); }
+  .seg-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .seg-value { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 15px; font-weight: 700; }
+  .seg-btn.active .seg-value { color: var(--brand-tint); }
+  .seg-btn.active.past .seg-value { color: #fff; }
+
   /* Step-number pill from Creators. */
   .pill {
     display: inline-flex; align-items: center; gap: 6px;

@@ -34,6 +34,11 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   }, []);
 
   const isNarrow = containerWidth < 640;
+  // Phones show one epoch at a time (full width, switchable); wider screens show both side by side.
+  const [mobileView, setMobileView] = useState<'live' | 'past'>('live');
+  const view: 'both' | 'live' | 'past' = isNarrow ? mobileView : 'both';
+  const showPast = view !== 'live';
+  const showLive = view !== 'past';
   const viewBoxWidth = containerWidth;
   const viewBoxHeight = isNarrow ? 340 : 380;
   const padLeft = isNarrow ? 44 : 48;
@@ -47,6 +52,13 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const rightEdge = viewBoxWidth - padRight; // 960 (100% end of epoch)
   const halfWidth = chartWidth / 2; // 460
   const groundY = padTop + chartHeight;
+
+  // Horizontal span of each epoch: half the chart when both are shown, all of it otherwise.
+  const pastX0 = padLeft;
+  const pastSpan = showLive ? halfWidth : chartWidth;
+  const pastX1 = pastX0 + pastSpan;
+  const liveX0 = showPast ? midX : padLeft;
+  const liveSpan = showPast ? halfWidth : chartWidth;
 
   // Dynamic Square-Root Normalizer (Sub-linear Power Transform)
   // Compresses outlier whale peaks so standard trading activity remains clear, dynamic and off the floor
@@ -95,18 +107,22 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   // Past points cover the entire left half (0% to 50% X). Every point is drawn at
   // its exact value — no visual smoothing — so the curve always agrees with the axis
   // and the tooltip. The monotone spline below handles the smoothness.
-  const pastPointsCoords = data.pastPoints.map((p) => ({
-    x: padLeft + p.percentAlongEpoch * halfWidth,
-    y: getY(p.intervalVolume),
-    point: p,
-  }));
+  const pastPointsCoords = showPast
+    ? data.pastPoints.map((p) => ({
+        x: pastX0 + p.percentAlongEpoch * pastSpan,
+        y: getY(p.intervalVolume),
+        point: p,
+      }))
+    : [];
 
   // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
-  const livePointsCoords = data.livePoints.map((p) => ({
-    x: midX + p.percentAlongEpoch * halfWidth,
-    y: getY(p.intervalVolume),
-    point: p,
-  }));
+  const livePointsCoords = showLive
+    ? data.livePoints.map((p) => ({
+        x: liveX0 + p.percentAlongEpoch * liveSpan,
+        y: getY(p.intervalVolume),
+        point: p,
+      }))
+    : [];
 
   // Connect junction seamlessly at 50% without any cliff drop
   if (pastPointsCoords.length > 0 && livePointsCoords.length > 0) {
@@ -116,7 +132,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   }
 
   const liveHead = livePointsCoords.length > 0 ? livePointsCoords[livePointsCoords.length - 1] : null;
-  const nowX = liveHead ? liveHead.x : midX;
+  const nowX = liveHead ? liveHead.x : showLive ? liveX0 : rightEdge;
   const nowY = liveHead ? liveHead.y : groundY;
 
   // Monotone cubic interpolation (Fritsch–Carlson): a smooth curve through every
@@ -175,19 +191,19 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
 
   const pastAreaD =
     pastPointsCoords.length > 0
-      ? `${pastLineD} L ${midX} ${groundY} L ${padLeft} ${groundY} Z`
+      ? `${pastLineD} L ${pastX1} ${groundY} L ${pastX0} ${groundY} Z`
       : '';
 
   // Live area drops strictly at nowX
   const liveAreaD =
     livePointsCoords.length > 0
-      ? `${liveLineD} L ${nowX} ${groundY} L ${midX} ${groundY} Z`
+      ? `${liveLineD} L ${nowX} ${groundY} L ${liveX0} ${groundY} Z`
       : '';
 
   const junctionPoint = pastPointsCoords[pastPointsCoords.length - 1] || { x: midX, y: groundY };
 
   // Responsive badge coordinates to prevent overlapping collisions
-  const isNearJunction = nowX - midX < 115;
+  const isNearJunction = nowX - liveX0 < 115;
   const transitionBadgeY = isNearJunction ? padTop - 15 : padTop - 32;
   const nowBadgeY = isNearJunction ? padTop - 38 : padTop - 32;
 
@@ -244,8 +260,31 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
 
   return (
     <div className="w-full glass-panel rounded-2xl p-5 sm:p-6 space-y-4">
+      {/* Phone header: one epoch at a time */}
+      {isNarrow && (
+        <div className="seg" role="tablist" aria-label="Epoch">
+          {(['live', 'past'] as const).map((v) => {
+            const active = mobileView === v;
+            const total = v === 'live' ? data.totalLiveVolumeUsd : data.totalPastVolumeUsd;
+            return (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`seg-btn${active ? ' active' : ''}${v === 'past' && active ? ' past' : ''}`}
+                onClick={() => { setMobileView(v); handleMouseLeave(); }}
+              >
+                <span className="seg-label">{v === 'live' ? `This epoch · #${epochConfig.epochNumber}` : 'Last epoch'}</span>
+                <span className="seg-value">{formatUsdShort(total)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Chart Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+      <div className={`${isNarrow ? 'hidden' : 'flex'} flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3`}>
         {/* Left: Past Epoch */}
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full bg-white/10 border border-[#a0a3a7] flex items-center justify-center">
@@ -463,6 +502,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           />
 
           {/* 50% Junction Indicator */}
+          {showPast && showLive && (
           <g>
             <line
               x1={midX}
@@ -509,6 +549,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               filter="url(#junctionGlow)"
             />
           </g>
+          )}
 
           {/* Live Head / NOW Marker */}
           {liveHead && nowX < rightEdge && (
@@ -567,9 +608,10 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fontFamily="monospace"
             textAnchor="start"
           >
-            {isNarrow ? shortDate(epochConfig.pastStartTime) : formatDateLabel(epochConfig.pastStartTime)}
+            {(() => { const t = showPast ? epochConfig.pastStartTime : epochConfig.startTime; return isNarrow ? shortDate(t) : formatDateLabel(t); })()}
           </text>
 
+          {showPast && showLive && (
           <text
             x={midX}
             y={groundY + 18}
@@ -581,9 +623,10 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
           >
             {isNarrow ? shortDate(epochConfig.startTime) : formatDateLabel(epochConfig.startTime)}
           </text>
+          )}
 
           {/* If nowX is separated enough from start and end, show Now label without collision */}
-          {nowX > midX + 115 && nowX < rightEdge - 90 && (
+          {liveHead && nowX > liveX0 + 115 && nowX < rightEdge - 90 && (
             <text
               x={nowX}
               y={groundY + 18}
@@ -605,7 +648,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fontFamily="monospace"
             textAnchor="end"
           >
-            {isNarrow ? shortDate(epochConfig.endTime) : formatDateLabel(epochConfig.endTime)}
+            {(() => { const t = showLive ? epochConfig.endTime : epochConfig.startTime; return isNarrow ? shortDate(t) : formatDateLabel(t); })()}
           </text>
 
           {/* Hover Crosshair for Elapsed Points */}
@@ -644,7 +687,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               transform: 'translate(-50%, -100%)',
             }}
           >
-            <div className="bg-[#141518]/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl text-xs min-w-[195px] space-y-1.5">
+            <div className="bg-[#141518]/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl text-xs min-w-[220px] space-y-1.5 whitespace-nowrap">
               <div className="flex items-center justify-between border-b border-white/[0.08] pb-1">
                 <span
                   className={`font-bold uppercase tracking-wider text-[10px] ${
