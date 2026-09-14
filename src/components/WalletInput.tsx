@@ -55,7 +55,7 @@ export const WalletInput: React.FC<WalletInputProps> = ({ currentAddress, onSear
           )}
         </div>
 
-        <button type="submit" disabled={isLoading} className="btn shrink-0 justify-center !rounded-[12px]">
+        <button type="submit" disabled={isLoading} className="btn shrink-0 justify-center">
           {isLoading ? 'Checking…' : 'Inspect'}
           {!isLoading && <ArrowRight size={14} strokeWidth={2.6} />}
         </button>
