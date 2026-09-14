@@ -74,31 +74,21 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
     return h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`;
   })();
 
-  // Past points cover the entire left half (0% to 50% X) - Dynamic normalized flow
-  const rawPastCoords = data.pastPoints.map((p) => ({
+  // Past points cover the entire left half (0% to 50% X). Every point is drawn at
+  // its exact value — no visual smoothing — so the curve always agrees with the axis
+  // and the tooltip. The monotone spline below handles the smoothness.
+  const pastPointsCoords = data.pastPoints.map((p) => ({
     x: padLeft + p.percentAlongEpoch * halfWidth,
     y: getY(p.intervalVolume),
     point: p,
   }));
 
   // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
-  const rawLiveCoords = data.livePoints.map((p) => ({
+  const livePointsCoords = data.livePoints.map((p) => ({
     x: midX + p.percentAlongEpoch * halfWidth,
     y: getY(p.intervalVolume),
     point: p,
   }));
-
-  // Visual smoothing only (hover values stay raw): a light 1-2-1 pass over the
-  // pixel heights takes the edge off 2-hour buckets without hiding real peaks.
-  const softenSeries = <T extends { x: number; y: number }>(coords: T[]): T[] =>
-    coords.map((c, i, a) => {
-      const prev = a[i - 1] ?? c;
-      const next = a[i + 1] ?? c;
-      return { ...c, y: (prev.y + 2 * c.y + next.y) / 4 };
-    });
-
-  const pastPointsCoords = softenSeries(rawPastCoords);
-  const livePointsCoords = softenSeries(rawLiveCoords);
 
   // Connect junction seamlessly at 50% without any cliff drop
   if (pastPointsCoords.length > 0 && livePointsCoords.length > 0) {
