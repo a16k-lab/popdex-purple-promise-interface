@@ -2,6 +2,10 @@ import type { EpochConfig } from '../types';
 
 export const TARGET_VOLUME_USD = Number(import.meta.env.VITE_TARGET_VOLUME_USD) || 100_000;
 
+// Chart smoothing: each point shows the volume of the last N 2-hour buckets.
+// 1 = raw 2h buckets, 3 = rolling 6h (default), 6 = rolling 12h. Clamped to 1–12.
+export const CHART_WINDOW_BUCKETS = Math.min(12, Math.max(1, Math.round(Number(import.meta.env.VITE_CHART_WINDOW_BUCKETS) || 3)));
+
 /**
  * Returns the Monday 00:00:00 UTC for a given timestamp
  */

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { ChartPoint, EpochConfig, WalletVolumeData } from '../types';
-import { formatDateLabel, formatShortDate, formatBucketLabel, localTzLabel, getCountdown, formatDuration } from '../config/epochConfig';
+import { formatDateLabel, formatShortDate, formatBucketLabel, localTzLabel, getCountdown, formatDuration, CHART_WINDOW_BUCKETS } from '../config/epochConfig';
 
 const shortDate = formatShortDate;
 import { Activity, Sparkles, Clock } from 'lucide-react';
@@ -71,7 +71,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   // its detail, but a single-bucket spike spreads over three points instead of forming a
   // needle. Every drawn value is a real number (the trailing 6h sum) — hover shows it,
   // plus the raw 2h bucket and the running total.
-  const WINDOW_BUCKETS = 3;
+  const WINDOW_BUCKETS = CHART_WINDOW_BUCKETS;
   type WindowedPoint = ChartPoint & { windowVolume: number };
   const withWindow = (pts: ChartPoint[]): WindowedPoint[] =>
     pts.map((p, i) => {
@@ -441,7 +441,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             fill="#6c6f75"
             letterSpacing="0.08em"
           >
-            USD · ROLLING {windowLabel.toUpperCase()}
+            {WINDOW_BUCKETS > 1 ? `USD · ROLLING ${windowLabel.toUpperCase()}` : `USD / ${bucketLabel.toUpperCase()}`}
           </text>
 
           <line
@@ -741,18 +741,20 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               </div>
 
               <div className="flex justify-between items-center text-white/80">
-                <span>Volume (last {windowLabel})</span>
+                <span>{WINDOW_BUCKETS > 1 ? `Volume (last ${windowLabel})` : `Volume (${bucketLabel} bucket)`}</span>
                 <span className="font-mono font-bold text-white">
                   ${(hoveredPoint.windowVolume ?? hoveredPoint.intervalVolume).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
+              {WINDOW_BUCKETS > 1 && (
               <div className="flex justify-between items-center text-white/60">
                 <span>This {bucketLabel} bucket</span>
                 <span className="font-mono font-semibold">
                   ${hoveredPoint.intervalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
+              )}
 
               <div className="flex justify-between items-center text-white/80">
                 <span>Running total</span>
@@ -829,7 +831,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5">
           <Activity size={12} className="text-[#8077ff]" />
-          <span>Rolling {windowLabel} volume at {bucketLabel} steps (√ scale keeps whale spikes readable) · hover for the bucket and running total · times in your timezone ({localTzLabel()})</span>
+          <span>{WINDOW_BUCKETS > 1 ? `Rolling ${windowLabel} volume at ${bucketLabel} steps` : `Volume per ${bucketLabel} bucket`} (√ scale keeps whale spikes readable) · hover for details · times in your timezone ({localTzLabel()})</span>
         </div>
         <div className="font-mono text-white/50">
           Threshold: <strong className="text-white">$100,000 USD</strong>

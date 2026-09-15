@@ -31,6 +31,7 @@ for the chart; totals are the plain sum.
 | `VITE_EPOCH_START`, `VITE_EPOCH_END` | epoch window (ms or s timestamps); defaults to the current Monday-to-Monday UTC week |
 | `VITE_EPOCH_NUMBER` | displayed epoch number |
 | `VITE_TARGET_VOLUME_USD` | threshold, default `100000` (read by both the UI and the API) |
+| `VITE_CHART_WINDOW_BUCKETS` | chart smoothing: each point = volume of the last N 2h buckets; `1` raw, `3` rolling 6h (default), `6` rolling 12h |
 | `VITE_SITE_URL` | site origin for social-preview tags; on Vercel it is derived automatically |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | optional shared cache (Upstash Redis / Vercel KV); `UPSTASH_REDIS_REST_*` also accepted |
 
