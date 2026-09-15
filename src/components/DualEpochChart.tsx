@@ -1,9 +1,8 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { ChartPoint, EpochConfig, WalletVolumeData } from '../types';
-import { formatDateLabel, getCountdown, formatDuration } from '../config/epochConfig';
+import { formatDateLabel, formatShortDate, formatBucketLabel, localTzLabel, getCountdown, formatDuration } from '../config/epochConfig';
 
-const shortDate = (ts: number) =>
-  new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const shortDate = formatShortDate;
 import { Activity, Sparkles, Clock } from 'lucide-react';
 
 interface DualEpochChartProps {
@@ -714,7 +713,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 >
                   {hoveredPoint.epochType === 'live' ? '● Live Elapsed' : '○ Past Baseline'}
                 </span>
-                <span className="text-white/50 font-mono text-[10px]">{hoveredPoint.timeLabel}</span>
+                <span className="text-white/50 font-mono text-[10px]">{formatBucketLabel(hoveredPoint.timestamp)}</span>
               </div>
 
               <div className="flex justify-between items-center text-white/80">
@@ -799,7 +798,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5">
           <Activity size={12} className="text-[#8077ff]" />
-          <span>Curve shows volume per {bucketLabel} bucket (√ scale keeps whale spikes readable) · hover for running totals.</span>
+          <span>Volume per {bucketLabel} bucket (√ scale keeps whale spikes readable) · hover for running totals · times in your timezone ({localTzLabel()})</span>
         </div>
         <div className="font-mono text-white/50">
           Threshold: <strong className="text-white">$100,000 USD</strong>

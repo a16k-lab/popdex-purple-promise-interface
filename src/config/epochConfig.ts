@@ -124,13 +124,40 @@ export function getCountdown(endTimeMs: number): Countdown {
   };
 }
 
+// All timestamps are absolute instants (ms since epoch); the epoch boundaries are
+// defined in UTC so they are the same for everyone. Everything the viewer *reads*
+// is rendered in their own timezone so "Sunday" means their Sunday.
+
+/** "Sep 14, 03:30" in the viewer's timezone. */
 export function formatDateLabel(timestamp: number): string {
   const d = new Date(timestamp);
-  const month = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-  const day = d.getUTCDate();
-  const hours = String(d.getUTCHours()).padStart(2, '0');
-  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${month} ${day}, ${hours}:${minutes} UTC`;
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${date}, ${time}`;
+}
+
+/** "Sep 14" in the viewer's timezone. */
+export function formatShortDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/** "Mon 02:00" (bucket start) or "Mon 02:37" in the viewer's timezone. */
+export function formatBucketLabel(timestamp: number): string {
+  const d = new Date(timestamp);
+  const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${day} ${time}`;
+}
+
+/** "UTC+03:30" / "UTC" — the viewer's offset, for a one-line disclosure. */
+export function localTzLabel(): string {
+  const offsetMin = -new Date().getTimezoneOffset();
+  if (offsetMin === 0) return 'UTC';
+  const sign = offsetMin > 0 ? '+' : '-';
+  const abs = Math.abs(offsetMin);
+  const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const mm = String(abs % 60).padStart(2, '0');
+  return `UTC${sign}${hh}:${mm}`;
 }
 
 /** "7d", "14d", "23.5d", "36h" — the epoch length, for copy that must not assume a week. */
