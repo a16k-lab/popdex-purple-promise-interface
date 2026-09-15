@@ -159,6 +159,16 @@ export const App: React.FC = () => {
               </button>
             </div>
 
+            {volumeData.complete === false && (
+              <div className="flex items-start gap-2.5 text-[13px] text-[#f5c46b] bg-[#f5c46b]/10 border border-[#f5c46b]/30 rounded-xl px-4 py-3">
+                <span aria-hidden>⚠️</span>
+                <span>
+                  PopDex returned this wallet's fills slower than our time budget, so the totals below are a <b>lower bound</b>.
+                  Hit <b>Change wallet</b> and inspect again — the finished epoch is cached, so the retry is faster.
+                </span>
+              </div>
+            )}
+
             {/* 1. Eligibility State Card */}
             <EligibilityCard data={volumeData} />
 

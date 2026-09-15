@@ -66,14 +66,14 @@ export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data }) 
       {/* Card 4: Orders & Size */}
       <div className="glass-panel rounded-2xl p-5 group hover:!border-[#8077ff]/40 transition-colors duration-200">
         <div className="flex items-center justify-between mb-2">
-          <span className="caption">Orders & Avg Size</span>
+          <span className="caption">Fills & Avg Size</span>
           <div className="p-1.5 rounded-lg bg-[#8077ff]/15 text-[#8077ff]">
             <Layers size={15} />
           </div>
         </div>
         <div className="text-2xl font-bold font-mono text-white tracking-tight tabular-nums">
           {data.tradeCount.toLocaleString()}{' '}
-          <span className="text-xs font-normal text-[#6c6f75]">orders</span>
+          <span className="text-xs font-normal text-[#6c6f75]">fills</span>
         </div>
         <div className="mt-1.5 text-[12px] text-[#bdb9ff]">
           <span>Avg: ${data.avgOrderSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>

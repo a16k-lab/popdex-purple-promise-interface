@@ -34,7 +34,8 @@ export interface WalletVolumeData {
   tradeCount: number;
   avgOrderSizeUsd: number;
   lastActiveTs: number;
-  source: 'popdex_uta_positions' | 'popdex_onchain' | 'live_api' | 'simulated';
+  complete?: boolean; // false when the API hit its time budget — totals are a lower bound
+  source: 'popdex_fills' | 'popdex_uta_positions' | 'popdex_onchain' | 'live_api' | 'simulated';
 }
 
 export interface PresetWallet {

@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# PopDex Purple Promise (3P)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Weekly volume tracker: paste a wallet, see its traded volume for the current and previous epoch, and whether it clears the Purple Promise threshold.
 
-Currently, two official plugins are available:
+React + Vite + Tailwind, deployed on Vercel. The UI mirrors the PopDex Creators form.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How volume is computed
 
-## React Compiler
+`api/wallet-volume.ts` (a Vercel function) sums **trade fills** from the PopDEX UTA API —
+`GET /api/v1/account/{wallet}/trade/fills` — using each fill's `execValue` (USD notional) and `createdAt`.
+That is the same number the exchange reports as traded volume. Fills are bucketed into 2-hour intervals
+for the chart; totals are the plain sum.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- The past epoch and the elapsed part of the live epoch are fetched as parallel 6-hour slices
+  (8 concurrent requests, 100 fills per page). A very active wallet (20k fills / 2 weeks) takes ~15 s;
+  a normal one is well under 2 s.
+- Finished windows are cached in the function instance for 6 h; the live window for 90 s.
+- If PopDex can't be fully read inside the 45 s budget, the response carries `complete: false` and the UI
+  says the totals are a lower bound.
 
-## Expanding the Oxlint configuration
+## Environment variables (all optional)
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+| Name | Purpose |
+| --- | --- |
+| `VITE_EPOCH_START`, `VITE_EPOCH_END` | epoch window (ms or s timestamps); defaults to the current Monday-to-Monday UTC week |
+| `VITE_EPOCH_NUMBER` | displayed epoch number |
+| `VITE_TARGET_VOLUME_USD` | threshold, default `100000` (read by both the UI and the API) |
+| `VITE_SITE_URL` | site origin for social-preview tags; on Vercel it is derived automatically |
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Development
+
+```bash
+npm install
+npm run dev      # Vite dev server; /api/wallet-volume is served by the same handler
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
