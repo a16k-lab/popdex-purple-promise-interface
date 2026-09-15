@@ -1,13 +1,15 @@
 import React from 'react';
-import type { WalletVolumeData } from '../types';
+import type { WalletVolumeData, EpochConfig } from '../types';
+import { formatDuration } from '../config/epochConfig';
 import { BarChart2, History, Target, Layers } from 'lucide-react';
 
 interface EpochStatsOverviewProps {
   data: WalletVolumeData;
+  epochConfig: EpochConfig;
   pastLoading?: boolean;
 }
 
-export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data, pastLoading }) => {
+export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data, epochConfig, pastLoading }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
       {/* Card 1: Live Volume */}
@@ -39,7 +41,7 @@ export const EpochStatsOverview: React.FC<EpochStatsOverviewProps> = ({ data, pa
           {pastLoading ? <span className="inline-block h-7 w-36 rounded-md bg-white/10 animate-pulse align-middle" /> : `$${data.totalPastVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
         </div>
         <div className="mt-1.5 text-[12px] text-[#6c6f75]">
-          <span>7-Day Prior Reference</span>
+          <span>Previous {formatDuration(epochConfig.durationMs)} epoch</span>
         </div>
       </div>
 

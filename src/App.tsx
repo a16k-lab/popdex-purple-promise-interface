@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { getEpochConfig, TARGET_VOLUME_USD } from './config/epochConfig';
+import { getEpochConfig, TARGET_VOLUME_USD, formatDuration } from './config/epochConfig';
 import { streamWalletVolume, emptyVolumeData } from './services/volumeService';
 import type { EpochConfig, WalletVolumeData } from './types';
 import { AmbientBackground } from './components/AmbientBackground';
@@ -101,13 +101,13 @@ export const App: React.FC = () => {
           <div className="space-y-8 animate-fadeIn">
             {/* Hero */}
             <section className="text-center space-y-4 max-w-2xl mx-auto pt-6 sm:pt-12">
-              <span className="pill">01 · Weekly volume tracker</span>
+              <span className="pill">01 · Epoch volume tracker</span>
               <h1 className="text-[28px] sm:text-4xl md:text-[44px] font-bold tracking-[-0.015em] text-white leading-[1.15]">
                 Trade volume &amp; <br className="hidden sm:inline" />
                 <span className="text-[#8077ff]">Purple Promise</span> eligibility
               </h1>
               <p className="text-[15px] sm:text-base text-[#a0a3a7] leading-relaxed">
-                Inspect any EVM wallet to see its weekly volume and whether it qualifies for rewards.
+                Inspect any EVM wallet to see its volume this epoch and whether it qualifies for rewards.
               </p>
             </section>
 
@@ -143,7 +143,7 @@ export const App: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-[15px] text-[#a0a3a7] leading-relaxed">
-                  Generate <code className="code code-green">{formatTargetShort(TARGET_VOLUME_USD)}+</code> volume in the active 7-day epoch to earn{' '}
+                  Generate <code className="code code-green">{formatTargetShort(TARGET_VOLUME_USD)}+</code> volume in the active {formatDuration(epochConfig.durationMs)} epoch to earn{' '}
                   <strong className="text-[#17a781] font-semibold">Purple Promise Verified</strong> status and protocol rewards.
                 </p>
               </div>
@@ -217,7 +217,7 @@ export const App: React.FC = () => {
             <DualEpochChart data={volumeData} epochConfig={epochConfig} pastLoading={pastPending ? { done: phase?.scope === 'past' ? phase.done : 0, total: phase?.scope === 'past' ? phase.total : 0 } : null} />
 
             {/* 3. Overview Stats Cards */}
-            <EpochStatsOverview data={volumeData} pastLoading={pastPending} />
+            <EpochStatsOverview data={volumeData} epochConfig={epochConfig} pastLoading={pastPending} />
           </div>
         )}
       </main>

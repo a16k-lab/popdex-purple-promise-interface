@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { ChartPoint, EpochConfig, WalletVolumeData } from '../types';
-import { formatDateLabel, getCountdown } from '../config/epochConfig';
+import { formatDateLabel, getCountdown, formatDuration } from '../config/epochConfig';
 
 const shortDate = (ts: number) =>
   new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -298,7 +298,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 Past Baseline
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.05] text-[#a0a3a7]">
-                7D Prior (Complete)
+                {formatDuration(epochConfig.durationMs)} prior · complete
               </span>
             </div>
             <p className="text-xs text-[#6c6f75] font-mono">

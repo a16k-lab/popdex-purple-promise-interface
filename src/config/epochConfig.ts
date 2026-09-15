@@ -132,3 +132,11 @@ export function formatDateLabel(timestamp: number): string {
   const minutes = String(d.getUTCMinutes()).padStart(2, '0');
   return `${month} ${day}, ${hours}:${minutes} UTC`;
 }
+
+/** "7d", "14d", "23.5d", "36h" — the epoch length, for copy that must not assume a week. */
+export function formatDuration(ms: number): string {
+  const hours = ms / 3_600_000;
+  if (hours < 48) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  return `${Number.isInteger(days) ? days : days.toFixed(1)}d`;
+}
