@@ -14,7 +14,7 @@ interface DualEpochChartProps {
 
 export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfig, pastLoading }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<(ChartPoint & { windowVolume?: number }) | null>(null);
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
   const [isHoveringFuture, setIsHoveringFuture] = useState(false);
 
@@ -66,8 +66,25 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
   const transformVol = (v: number) => Math.sqrt(Math.max(0, v));
   const invertVol = (t: number) => Math.pow(t, 2);
 
+  // The curve plots a ROLLING window: each 2h point shows the volume of the last
+  // WINDOW_BUCKETS buckets (3 × 2h = 6h). Data stays at 2h resolution, so the line keeps
+  // its detail, but a single-bucket spike spreads over three points instead of forming a
+  // needle. Every drawn value is a real number (the trailing 6h sum) — hover shows it,
+  // plus the raw 2h bucket and the running total.
+  const WINDOW_BUCKETS = 3;
+  type WindowedPoint = ChartPoint & { windowVolume: number };
+  const withWindow = (pts: ChartPoint[]): WindowedPoint[] =>
+    pts.map((p, i) => {
+      let sum = 0;
+      for (let k = Math.max(0, i - WINDOW_BUCKETS + 1); k <= i; k++) sum += pts[k].intervalVolume || 0;
+      return { ...p, windowVolume: Math.round(sum * 100) / 100 };
+    });
+  const pastSeries = withWindow(data.pastPoints);
+  const liveSeries = withWindow(data.livePoints);
+
   const maxIntervalVolume = Math.max(
-    ...data.allPoints.map((p) => p.intervalVolume || 0),
+    ...pastSeries.map((p) => p.windowVolume),
+    ...liveSeries.map((p) => p.windowVolume),
     100
   );
   const maxTransformed = transformVol(maxIntervalVolume) * 1.08;
@@ -105,22 +122,29 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
     return h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`;
   })();
 
+  const windowLabel = (() => {
+    const pts = data.allPoints;
+    if (pts.length < 2) return 'window';
+    const h = Math.round((Math.abs(pts[1].timestamp - pts[0].timestamp) * WINDOW_BUCKETS) / 3_600_000);
+    return h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`;
+  })();
+
   // Past points cover the entire left half (0% to 50% X). Every point is drawn at
   // its exact value — no visual smoothing — so the curve always agrees with the axis
   // and the tooltip. The monotone spline below handles the smoothness.
   const pastPointsCoords = showPast
-    ? data.pastPoints.map((p) => ({
+    ? pastSeries.map((p) => ({
         x: pastX0 + p.percentAlongEpoch * pastSpan,
-        y: getY(p.intervalVolume),
+        y: getY(p.windowVolume),
         point: p,
       }))
     : [];
 
   // Live points cover ONLY elapsed time of active epoch (from midX up to nowX)
   const livePointsCoords = showLive
-    ? data.livePoints.map((p) => ({
+    ? liveSeries.map((p) => ({
         x: liveX0 + p.percentAlongEpoch * liveSpan,
-        y: getY(p.intervalVolume),
+        y: getY(p.windowVolume),
         point: p,
       }))
     : [];
@@ -409,15 +433,15 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             );
           })}
           <text
-            x={padLeft - 8}
+            x={padLeft}
             y={padTop - 6}
-            textAnchor="end"
+            textAnchor="start"
             fontSize="8"
             fontFamily="monospace"
             fill="#6c6f75"
             letterSpacing="0.08em"
           >
-            USD / {bucketLabel}
+            USD · ROLLING {windowLabel.toUpperCase()}
           </text>
 
           <line
@@ -717,8 +741,15 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               </div>
 
               <div className="flex justify-between items-center text-white/80">
-                <span>Volume ({bucketLabel} bucket)</span>
+                <span>Volume (last {windowLabel})</span>
                 <span className="font-mono font-bold text-white">
+                  ${(hoveredPoint.windowVolume ?? hoveredPoint.intervalVolume).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center text-white/60">
+                <span>This {bucketLabel} bucket</span>
+                <span className="font-mono font-semibold">
                   ${hoveredPoint.intervalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -798,7 +829,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[11px] text-white/40 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5">
           <Activity size={12} className="text-[#8077ff]" />
-          <span>Volume per {bucketLabel} bucket (√ scale keeps whale spikes readable) · hover for running totals · times in your timezone ({localTzLabel()})</span>
+          <span>Rolling {windowLabel} volume at {bucketLabel} steps (√ scale keeps whale spikes readable) · hover for the bucket and running total · times in your timezone ({localTzLabel()})</span>
         </div>
         <div className="font-mono text-white/50">
           Threshold: <strong className="text-white">$100,000 USD</strong>
