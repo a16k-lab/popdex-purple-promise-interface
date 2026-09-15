@@ -28,40 +28,16 @@ export const PRESET_WALLETS: PresetWallet[] = [
   },
 ];
 
-/**
- * Fetch and compute 100% REAL volume data directly from PopDEX official UTA APIs:
- * - https://popdex.xyz/docs/uta/positions/Get-Position
- * - https://popdex.xyz/docs/uta/positions/Get-Position-History
- */
-export async function getWalletVolumeData(
-  address: string,
-  epochConfig: EpochConfig
-): Promise<WalletVolumeData> {
-  const cleanAddr = address.trim().toLowerCase();
+export type VolumeScope = 'live' | 'past';
 
-  try {
-    const resp = await fetch(
-      `/api/wallet-volume?address=${cleanAddr}&startTs=${epochConfig.startTime}&endTs=${epochConfig.endTime}`
-    );
-    if (resp.ok) {
-      const realData: WalletVolumeData = await resp.json();
-      if (realData && Array.isArray(realData.allPoints)) {
-        return realData;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to query live PopDEX order facts:', err);
-  }
-
-  // Real zero fallback for empty/inactive wallets
-  const targetVolumeUsd = TARGET_VOLUME_USD;
+export function emptyVolumeData(address: string): WalletVolumeData {
   return {
-    address: cleanAddr,
+    address,
     totalLiveVolumeUsd: 0,
     totalPastVolumeUsd: 0,
-    targetVolumeUsd,
+    targetVolumeUsd: TARGET_VOLUME_USD,
     isEligible: false,
-    remainingUsdNeeded: targetVolumeUsd,
+    remainingUsdNeeded: TARGET_VOLUME_USD,
     progressPercent: 0,
     pastPoints: [],
     livePoints: [],
@@ -69,6 +45,59 @@ export async function getWalletVolumeData(
     tradeCount: 0,
     avgOrderSizeUsd: 0,
     lastActiveTs: Date.now(),
-    source: 'popdex_onchain',
+    complete: true,
+    source: 'popdex_fills',
   };
+}
+
+/**
+ * Streams one scope (live or past epoch) of a wallet's volume from /api/wallet-volume.
+ * The API writes NDJSON: a full snapshot per finished slice, the last one being final.
+ * `onUpdate` fires for every snapshot; the promise resolves with the final one.
+ */
+export async function streamWalletVolume(
+  address: string,
+  epochConfig: EpochConfig,
+  scope: VolumeScope,
+  onUpdate: (snapshot: WalletVolumeData) => void,
+  signal?: AbortSignal,
+): Promise<WalletVolumeData | null> {
+  const cleanAddr = address.trim().toLowerCase();
+  try {
+    const resp = await fetch(
+      `/api/wallet-volume?address=${cleanAddr}&startTs=${epochConfig.startTime}&endTs=${epochConfig.endTime}&scope=${scope}`,
+      { signal },
+    );
+    if (!resp.ok || !resp.body) return null;
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let last: WalletVolumeData | null = null;
+    const consume = (line: string) => {
+      if (!line.trim()) return;
+      try {
+        const snap = JSON.parse(line) as WalletVolumeData;
+        if (snap && Array.isArray(snap.allPoints)) {
+          last = snap;
+          onUpdate(snap);
+        }
+      } catch {
+        /* partial line */
+      }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      lines.forEach(consume);
+    }
+    consume(buffer);
+    return last;
+  } catch (err) {
+    if ((err as Error)?.name !== 'AbortError') console.error(`Failed to stream ${scope} volume:`, err);
+    return null;
+  }
 }

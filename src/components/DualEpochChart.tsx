@@ -9,9 +9,11 @@ import { Activity, Sparkles, Clock } from 'lucide-react';
 interface DualEpochChartProps {
   data: WalletVolumeData;
   epochConfig: EpochConfig;
+  /** While the previous epoch is still streaming in: its fetch progress. */
+  pastLoading?: { done: number; total: number } | null;
 }
 
-export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfig }) => {
+export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfig, pastLoading }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
@@ -276,7 +278,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
                 onClick={() => { setMobileView(v); handleMouseLeave(); }}
               >
                 <span className="seg-label">{v === 'live' ? `This epoch · #${epochConfig.epochNumber}` : 'Last epoch'}</span>
-                <span className="seg-value">{formatUsdShort(total)}</span>
+                <span className="seg-value">{v === 'past' && pastLoading ? `${pastLoading.total ? Math.round((pastLoading.done / pastLoading.total) * 100) : 0}%` : formatUsdShort(total)}</span>
               </button>
             );
           })}
@@ -300,7 +302,7 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               </span>
             </div>
             <p className="text-xs text-[#6c6f75] font-mono">
-              ${data.totalPastVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {pastLoading ? `loading… ${pastLoading.total ? Math.round((pastLoading.done / pastLoading.total) * 100) : 0}%` : `$${data.totalPastVolumeUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
             </p>
           </div>
         </div>
@@ -373,6 +375,9 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
               <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#8077ff" floodOpacity="0.9" />
             </filter>
 
+            <pattern id="loadingStripes" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width="7" height="14" fill="rgba(255,255,255,0.035)" />
+            </pattern>
             <pattern id="futureGrid" width="20" height="20" patternUnits="userSpaceOnUse">
               <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.02)" strokeWidth="1" />
             </pattern>
@@ -423,6 +428,19 @@ export const DualEpochChart: React.FC<DualEpochChartProps> = ({ data, epochConfi
             y2={groundY}
             stroke="rgba(255, 255, 255, 0.1)"
           />
+
+          {/* Past epoch still streaming in */}
+          {pastLoading && showPast && (
+            <g>
+              <rect x={pastX0} y={padTop} width={pastSpan} height={chartHeight} fill="url(#loadingStripes)" opacity="0.9">
+                <animate attributeName="opacity" values="0.55;0.95;0.55" dur="1.6s" repeatCount="indefinite" />
+              </rect>
+              <rect x={pastX0 + pastSpan / 2 - 74} y={padTop + chartHeight / 2 - 12} width="148" height="24" rx="7" fill="#141518" stroke="rgba(255,255,255,0.14)" />
+              <text x={pastX0 + pastSpan / 2} y={padTop + chartHeight / 2 + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="#a0a3a7" fontFamily="system-ui">
+                Loading last epoch · {pastLoading.total ? Math.round((pastLoading.done / pastLoading.total) * 100) : 0}%
+              </text>
+            </g>
+          )}
 
           {/* Past Curve (Left 50%) */}
           <path d={pastAreaD} fill="url(#pastAreaGrad)" />

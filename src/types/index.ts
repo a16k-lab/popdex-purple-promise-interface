@@ -35,6 +35,8 @@ export interface WalletVolumeData {
   avgOrderSizeUsd: number;
   lastActiveTs: number;
   complete?: boolean; // false when the API hit its time budget — totals are a lower bound
+  progress?: { done: number; total: number }; // fetch progress of the streamed response
+  scope?: 'live' | 'past' | 'both';
   source: 'popdex_fills' | 'popdex_uta_positions' | 'popdex_onchain' | 'live_api' | 'simulated';
 }
 

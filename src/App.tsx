@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { getEpochConfig, TARGET_VOLUME_USD } from './config/epochConfig';
-import { getWalletVolumeData } from './services/volumeService';
+import { streamWalletVolume, emptyVolumeData } from './services/volumeService';
 import type { EpochConfig, WalletVolumeData } from './types';
 import { AmbientBackground } from './components/AmbientBackground';
 import { Header } from './components/Header';
@@ -25,18 +25,51 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
+  // Progress of the streamed fetch, per epoch. `past` stays pending while the live epoch loads.
+  const [phase, setPhase] = useState<{ scope: 'live' | 'past'; done: number; total: number } | null>(null);
+  const [pastPending, setPastPending] = useState(false);
+
   const fetchWallet = useCallback(
     async (addr: string) => {
       setIsLoading(true);
       setWalletAddress(addr);
-      try {
-        const result = await getWalletVolumeData(addr, epochConfig);
-        setVolumeData(result);
-      } catch (err) {
-        console.error('Error fetching volume data:', err);
-      } finally {
-        setIsLoading(false);
-      }
+      setVolumeData(null);
+      setPastPending(true);
+      setPhase({ scope: 'live', done: 0, total: 0 });
+
+      // 1) Live epoch — the eligibility answer. Show it as soon as it lands.
+      const live = await streamWalletVolume(addr, epochConfig, 'live', (snap) => {
+        setPhase({ scope: 'live', done: snap.progress?.done ?? 0, total: snap.progress?.total ?? 0 });
+      });
+      const base: WalletVolumeData = live
+        ? { ...live, pastPoints: [], allPoints: live.livePoints }
+        : { ...emptyVolumeData(addr), complete: false };
+      setVolumeData(base);
+      setIsLoading(false);
+
+      // 2) Past epoch — streams into the left half of the chart while the user reads the result.
+      setPhase({ scope: 'past', done: 0, total: 0 });
+      const past = await streamWalletVolume(addr, epochConfig, 'past', (snap) => {
+        setPhase({ scope: 'past', done: snap.progress?.done ?? 0, total: snap.progress?.total ?? 0 });
+        setVolumeData((cur) =>
+          cur
+            ? { ...cur, totalPastVolumeUsd: snap.totalPastVolumeUsd, pastPoints: snap.pastPoints, allPoints: [...snap.pastPoints, ...cur.livePoints] }
+            : cur,
+        );
+      });
+      setVolumeData((cur) =>
+        cur
+          ? {
+              ...cur,
+              totalPastVolumeUsd: past?.totalPastVolumeUsd ?? cur.totalPastVolumeUsd,
+              pastPoints: past?.pastPoints ?? cur.pastPoints,
+              allPoints: [...(past?.pastPoints ?? cur.pastPoints), ...cur.livePoints],
+              complete: (cur.complete ?? true) && (past?.complete ?? false),
+            }
+          : cur,
+      );
+      setPastPending(false);
+      setPhase(null);
     },
     [epochConfig]
   );
@@ -119,16 +152,24 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Loading */}
+        {/* Loading — live epoch */}
         {isLoading && (
-          <div className="w-full py-28 flex flex-col items-center justify-center gap-5 animate-fadeIn">
+          <div className="w-full py-24 flex flex-col items-center justify-center gap-5 animate-fadeIn">
             <div className="relative flex items-center justify-center w-16 h-16">
               <div className="w-16 h-16 rounded-full border border-[#8077ff]/20 animate-ping absolute pointer-events-none" />
               <div className="w-14 h-14 rounded-full border-[3px] border-white/10 border-t-[#8077ff] animate-spin shadow-[0_0_30px_rgba(128,119,255,0.5)]" />
             </div>
-            <div className="text-center space-y-1">
-              <p className="text-[15px] font-semibold text-white">Computing volume…</p>
-              <p className="caption">Querying PopDex positions</p>
+            <div className="text-center space-y-2 w-full max-w-xs">
+              <p className="text-[15px] font-semibold text-white">Reading this epoch's fills…</p>
+              <div className="epoch-track !bg-white/10">
+                <div
+                  className="epoch-fill !bg-none !bg-[#8077ff] !shadow-[0_0_12px_rgba(128,119,255,0.7)]"
+                  style={{ width: `${phase && phase.total ? Math.max(4, (phase.done / phase.total) * 100) : 4}%` }}
+                />
+              </div>
+              <p className="caption">
+                {phase && phase.total ? `${Math.round((phase.done / phase.total) * 100)}% · ${phase.done}/${phase.total} slices` : 'Connecting to PopDex'}
+              </p>
             </div>
           </div>
         )}
@@ -159,7 +200,7 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {volumeData.complete === false && (
+            {volumeData.complete === false && !pastPending && (
               <div className="flex items-start gap-2.5 text-[13px] text-[#f5c46b] bg-[#f5c46b]/10 border border-[#f5c46b]/30 rounded-xl px-4 py-3">
                 <span aria-hidden>⚠️</span>
                 <span>
@@ -173,10 +214,10 @@ export const App: React.FC = () => {
             <EligibilityCard data={volumeData} />
 
             {/* 2. Seamless Connected Dual-Epoch Chart */}
-            <DualEpochChart data={volumeData} epochConfig={epochConfig} />
+            <DualEpochChart data={volumeData} epochConfig={epochConfig} pastLoading={pastPending ? { done: phase?.scope === 'past' ? phase.done : 0, total: phase?.scope === 'past' ? phase.total : 0 } : null} />
 
             {/* 3. Overview Stats Cards */}
-            <EpochStatsOverview data={volumeData} />
+            <EpochStatsOverview data={volumeData} pastLoading={pastPending} />
           </div>
         )}
       </main>
