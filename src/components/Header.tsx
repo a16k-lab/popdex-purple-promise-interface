@@ -7,7 +7,7 @@ interface HeaderProps {
   epochConfig: EpochConfig;
 }
 
-/** Top bar — same layout as the Creators form: logo + "/Section" left, quiet counters right. */
+/** Top bar — same layout as the Creators form: Pinsider mark + "/Section" left, quiet counters right. */
 export const Header: React.FC<HeaderProps> = ({ epochConfig }) => {
   const [countdown, setCountdown] = useState<Countdown>(() => getCountdown(epochConfig.endTime));
 
@@ -19,7 +19,10 @@ export const Header: React.FC<HeaderProps> = ({ epochConfig }) => {
   return (
     <header className="sticky top-0 z-50 w-full px-5 sm:px-9 pt-6 pb-3 flex items-center justify-between bg-gradient-to-b from-[#0b0b0d] via-[#0b0b0d]/80 to-transparent">
       <div className="flex items-center gap-2.5 select-none">
-        <img src="/logo.png" alt="PopDEX" className="h-5 sm:h-6 w-auto block" />
+        <svg viewBox="118.33 19.91 787.35 984.18" aria-hidden="true" focusable="false" className="h-[18px] sm:h-[21px] w-auto block text-white shrink-0">
+          <path fill="currentColor" d="M315.16 610.42h393.67v196.84H315.16zM708.84 216.74h196.84v393.67H708.84zM315.16 19.91h393.67v196.84H315.16zM118.33 216.74h196.84v787.35H118.33z" />
+        </svg>
+        <span className="text-[17px] sm:text-[20px] font-extrabold text-white leading-none tracking-[-0.022em] -ml-px">Pinsider</span>
         <span className="text-[13px] sm:text-[15px] font-semibold text-[#8077ff] pt-0.5 tracking-[0.01em]">
           /Purple Promise
         </span>
